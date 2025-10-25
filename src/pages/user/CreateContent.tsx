@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import TextToSpeech from '../../components/ai-features/TextToSpeech';
 import DeepfakeVideo from '../../components/ai-features/DeepfakeVideo';
 import FakelipVideo from '../../components/ai-features/FakelipVideo';
+import CombinedAIFeature from '../../components/ai-features/CombinedAIFeature';
+import SlideToVideo from '../../components/ai-features/SlideToVideo';
 // import TextToSlide from '../../components/ai-features/TextToSlide';
 
 const CreateContent = () => {
-  const [activeTab, setActiveTab] = useState('tts');
+  const [activeTab, setActiveTab] = useState('slide');
 
   return (
     <div className="create-content-page">
@@ -14,6 +16,18 @@ const CreateContent = () => {
 
       <div className="tabs-container">
         <div className="tabs">
+          <button
+            className={`tab ${activeTab === 'slide' ? 'active' : ''}`}
+            onClick={() => setActiveTab('slide')}
+          >
+            Slide to Video
+          </button>
+          <button
+            className={`tab ${activeTab === 'combined' ? 'active' : ''}`}
+            onClick={() => setActiveTab('combined')}
+          >
+            Video AI Tổng Hợp
+          </button>
           <button
             className={`tab ${activeTab === 'tts' ? 'active' : ''}`}
             onClick={() => setActiveTab('tts')}
@@ -32,15 +46,17 @@ const CreateContent = () => {
           >
             Fakelip Video
           </button>
-          <button
+          {/* <button
             className={`tab ${activeTab === 'slides' ? 'active' : ''}`}
             onClick={() => setActiveTab('slides')}
           >
             Tạo Slides
-          </button>
+          </button> */}
         </div>
 
         <div className="tab-content">
+          {activeTab === 'slide' && <SlideToVideo />}
+          {activeTab === 'combined' && <CombinedAIFeature />}
           {activeTab === 'tts' && <TextToSpeech />}
           {activeTab === 'deepfake' && <DeepfakeVideo />}
           {activeTab === 'fakelip' && <FakelipVideo />}

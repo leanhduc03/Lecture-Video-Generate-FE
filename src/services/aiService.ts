@@ -1,9 +1,9 @@
 import axios from 'axios';
 
 const API_URL = 'http://localhost:8000/api/v1';
-const NGROK_URL = 'https://6e8f30993840.ngrok-free.app';
-const DEEPFAKE_NGROK_URL = 'https://9c1d95eb6cf4.ngrok-free.app';
-const FAKELIP_NGROK_URL = 'https://df3031df0ab7.ngrok-free.app';
+const NGROK_URL = 'https://byron-unswung-clarita.ngrok-free.dev';
+const DEEPFAKE_NGROK_URL = 'https://plushly-renounceable-catherina.ngrok-free.dev';
+const FAKELIP_NGROK_URL = 'https://promilitary-unconsiderablely-dia.ngrok-free.dev';
 
 export const uploadVoiceSample = async (file: File) => {
   const formData = new FormData();
@@ -162,4 +162,29 @@ export const uploadToCloudinary = async (file: File, fileType: string): Promise<
   
   const data = await response.json();
   return data.secure_url;
+};
+
+// ---- Thêm hàm mới cho SlideToVideo workflow ----
+export const uploadPptx = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await axios.post(`${API_URL}/media/upload-pptx`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data; // mong backend trả về slides metadata
+};
+
+export const combineSlideImageAndVideo = async (imageUrl: string, videoUrl: string) => {
+  const response = await axios.post(`${API_URL}/media/combine-slide`, {
+    image_url: imageUrl,
+    video_url: videoUrl
+  });
+  return response.data; // { result_url }
+};
+
+export const concatVideos = async (videoUrls: string[]) => {
+  const response = await axios.post(`${API_URL}/media/concat-videos`, {
+    videos: videoUrls
+  });
+  return response.data; // { result_url }
 };
