@@ -33,7 +33,7 @@ const SlideToVideo = () => {
   const [error, setError] = useState<string | null>(null);
 
   const voiceOptions = [
-    { id: 'voice1', name: 'Giọng Nam', url: 'https://res.cloudinary.com/dyaybnveq/video/upload/v1694318532/samples/male_voice.wav' },
+    { id: 'voice1', name: 'Giọng Nam', url: 'https://res.cloudinary.com/diqes2eof/video/upload/v1758950538/my_uploaded_audio.wav' },
     { id: 'voice2', name: 'Giọng Nữ', url: 'https://res.cloudinary.com/dyaybnveq/video/upload/v1694318532/samples/female_voice.wav' },
     { id: 'voice3', name: 'Giọng Trẻ Em', url: 'https://res.cloudinary.com/dyaybnveq/video/upload/v1694318532/samples/child_voice.wav' }
   ];
@@ -94,7 +94,7 @@ const SlideToVideo = () => {
 
       // polling trạng thái qua backend
       let attempts = 0;
-      const maxAttempts = 60;
+      const maxAttempts = 1200;
       while (attempts < maxAttempts) {
         attempts++;
         setProcessingMessage(`Đang xử lý deepfake... (lần ${attempts})`);
@@ -104,7 +104,7 @@ const SlideToVideo = () => {
           setProcessingMessage('Deepfake global hoàn tất');
           break;
         }
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 50000)); 
       }
       if (!deepfakeVideoUrl && !deepfakeJobId) {
         // nếu không cập nhật, coi là lỗi
@@ -194,6 +194,48 @@ const SlideToVideo = () => {
     setError(null);
     setProcessingMessage('');
   };
+  const handleDownload = async () => {
+    if (!finalVideoUrl) return;
+
+    try {
+      // Hiển thị thông báo đang tải
+      setError(null);
+      const loadingMessage = document.createElement('div');
+      loadingMessage.className = 'download-loading';
+      loadingMessage.textContent = 'Đang chuẩn bị tải xuống...';
+      document.querySelector('.result-container')?.appendChild(loadingMessage);
+
+      // Tải file từ URL
+      const response = await fetch(finalVideoUrl);
+      const blob = await response.blob();
+
+      // Tạo URL đối tượng từ blob
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      // Tạo thẻ a ẩn để tải xuống
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+
+      // Lấy tên file từ URL hoặc tạo tên mặc định
+      const fileName = finalVideoUrl.split('/').pop() || 'final-video.mp4';
+      downloadLink.download = fileName;
+
+      // Thêm vào DOM, kích hoạt sự kiện click và xóa
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      // Giải phóng URL đối tượng
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+        document.querySelector('.download-loading')?.remove();
+      }, 100);
+    } catch (err) {
+      console.error('Lỗi khi tải file:', err);
+      setError('Không thể tải xuống video. Vui lòng thử lại sau.');
+      document.querySelector('.download-loading')?.remove();
+    }
+  };
 
   return (
     <div className="combined-ai-feature">
@@ -225,7 +267,7 @@ const SlideToVideo = () => {
         <button onClick={createDeepfakeGlobal} disabled={!sourceFile || !targetFile || isProcessing}>
           {isProcessing ? 'Đang xử lý...' : 'Tạo Deepfake Global'}
         </button>
-        {deepfakeVideoUrl && <div>Deepfake global sẵn sàng: <a href={deepfakeVideoUrl} target="_blank" rel="noreferrer">xem</a></div>}
+        {deepfakeVideoUrl && (<div>Deepfake global sẵn sàng: <video src={deepfakeVideoUrl} controls style={{width:'100%'}} /></div>)}
       </section>
 
       {/* Steps 3..5: nhập text cho mỗi slide */}
@@ -271,9 +313,12 @@ const SlideToVideo = () => {
           <h3>Video cuối cùng</h3>
           <video src={finalVideoUrl} controls style={{width:'100%'}} />
           <div style={{marginTop:8}}>
-            <a href={finalVideoUrl} download target="_blank" rel="noreferrer">
-              <button>Tải xuống</button>
-            </a>
+            <button
+              onClick={handleDownload}
+              className="download-button"
+            >
+              Tải video xuống
+            </button>
           </div>
         </section>
       )}
