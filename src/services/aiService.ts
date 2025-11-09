@@ -35,7 +35,7 @@ export const uploadImageForDeepfake = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
   
-  const response = await axios.post(`${API_URL}/upload/upload-image`, formData, {
+  const response = await axios.post(`${API_URL}/media/upload-image`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -44,7 +44,7 @@ export const uploadImageForDeepfake = async (file: File): Promise<string> => {
   if (response.data.success) {
     return response.data.image_url;
   } else {
-    throw new Error('Upload ảnh thất bại');
+    throw new Error('Lỗi khi upload ảnh');
   }
 };
 
@@ -53,7 +53,7 @@ export const uploadVideoForDeepfake = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
   
-  const response = await axios.post(`${API_URL}/upload/upload-video`, formData, {
+  const response = await axios.post(`${API_URL}/media/upload-video`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -62,24 +62,24 @@ export const uploadVideoForDeepfake = async (file: File): Promise<string> => {
   if (response.data.success) {
     return response.data.video_url;
   } else {
-    throw new Error('Upload video thất bại');
+    throw new Error('Lỗi khi upload video');
   }
 };
 
 // Hàm gửi yêu cầu deepfake
 export const deepfakeVideo = async (sourceFile: File, targetFile: File): Promise<string> => {
   try {
-    // Upload qua backend
+    // Upload qua backend thay vì trực tiếp lên Cloudinary
     const sourceUrl = await uploadImageForDeepfake(sourceFile);
     const targetUrl = await uploadVideoForDeepfake(targetFile);
     
     console.log('Upload thành công source:', sourceUrl);
     console.log('Upload thành công target:', targetUrl);
     
-    // Gửi yêu cầu đến API Deepfake qua backend
-    const response = await axios.post(`${API_URL}/upload/process-deepfake`, {
-      source_url: sourceUrl,
-      target_url: targetUrl
+    // Gửi yêu cầu đến API Deepfake Ngrok
+    const response = await axios.post(`${DEEPFAKE_NGROK_URL}/deepfake`, {
+      source: sourceUrl,
+      target: targetUrl
     });
     
     console.log("Deepfake API response:", response.data);
@@ -89,7 +89,7 @@ export const deepfakeVideo = async (sourceFile: File, targetFile: File): Promise
     } else {
       throw new Error('Không nhận được job_id từ API');
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in deepfakeVideo:', error);
     throw error;
   }
@@ -98,9 +98,18 @@ export const deepfakeVideo = async (sourceFile: File, targetFile: File): Promise
 // Hàm kiểm tra trạng thái xử lý deepfake qua backend
 export const checkDeepfakeStatus = async (jobId: string): Promise<{status: string, result_url?: string}> => {
   try {
-    const response = await axios.get(`${API_URL}/upload/deepfake-status/${jobId}`);
-    return response.data;
-  } catch (error: any) {
+    const response = await axios.get(`${API_URL}/media/deepfake-status/${jobId}`);
+    const data = response.data;
+    
+    if (data.status === 'processing') {
+      return { status: 'processing' };
+    } else {
+      return { 
+        status: 'completed',
+        result_url: data.result_url 
+      };
+    }
+  } catch (error) {
     console.error('Error checking deepfake status:', error);
     throw error;
   }
