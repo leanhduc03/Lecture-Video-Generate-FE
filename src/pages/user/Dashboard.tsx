@@ -1,5 +1,6 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { MdHistory, MdMenuBook, MdMovieCreation } from "react-icons/md";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -11,29 +12,45 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
-      <h1>Bảng điều khiển người dùng</h1>
-      <div className="welcome-card">
-        <h2>Xin chào, {user?.username}!</h2>
-        <p>Chào mừng đến với ứng dụng học máy trong xây dựng bài giảng số.</p>
-      </div>
+      <section className="board">
+          <h1 className="board-title">Bảng điều khiển người dùng</h1>
+          <p className="board-content">Xin chào {user?.username}! Chào mừng đến với ứng dụng học máy trong xây dựng bài giảng số.</p>
+      </section>
+      <section className="main-card">
+          <div className="main-card-content">
+              {<MdMovieCreation className="icon-movie"/>}
+              <h2 className="card-heading">Tạo Video Mới</h2>
+              <p className="card-description">Tạo bài giảng video từ file PowerPoint và văn bản một cách dễ dàng.</p>
+              <button className="card-btn" onClick={handleGetStarted}>
+                  Bắt đầu
+              </button>
+          </div>
+      </section>
 
-      <div className="dashboard-cards">
+      <div className="second-card">
         <div className="card">
-          <h3>Tạo Video Mới</h3>
-          <p>Tạo bài giảng video từ file PowerPoint và văn bản.</p>
-          <button className="btn-primary" onClick={handleGetStarted}>Bắt đầu</button>
+            <div className="card-header">
+                <div className="icon-wrapper">
+                    <MdHistory className="icon-card"/>
+                </div>
+                <h3 className="card-header-text">Video Gần Đây</h3>
+            </div>
+            <p className="card-description">Xem các video đã tạo gần đây để tiếp tục công việc của bạn hoặc chia sẻ chúng.</p>
+            <button className="btn-secondary">
+                Xem
+            </button>
         </div>
-
         <div className="card">
-          <h3>Video Gần Đây</h3>
-          <p>Xem các video đã tạo gần đây.</p>
-          <button className="btn-secondary">Xem</button>
-        </div>
-
-        <div className="card">
-          <h3>Hướng Dẫn Sử Dụng</h3>
-          <p>Tìm hiểu cách sử dụng hệ thống hiệu quả nhất.</p>
-          <button className="btn-secondary">Xem hướng dẫn</button>
+            <div className="card-header">
+                <div className="icon-wrapper">
+                    <MdMenuBook className="icon-card"/>
+                </div>
+                <h3 className="card-header-text">Hướng Dẫn Sử Dụng</h3>
+            </div>
+            <p className="card-description">Tìm hiểu cách sử dụng hệ thống hiệu quả nhất với các tài liệu hướng dẫn chi tiết của chúng tôi.</p>
+            <button className="btn-secondary">
+                Xem hướng dẫn
+            </button>
         </div>
       </div>
     </div>

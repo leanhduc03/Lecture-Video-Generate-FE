@@ -45,14 +45,14 @@ function App() {
       {/* Public Routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={
-          isAuthenticated 
-            ? <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} /> 
-            : <Login />
+          // isAuthenticated 
+             <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} /> 
+            //  <Login />
         } />
         <Route path="/register" element={
-          isAuthenticated 
-            ? <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} /> 
-            : <Register />
+          // isAuthenticated 
+            // ? <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} /> 
+            <Register />
         } />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
@@ -61,18 +61,18 @@ function App() {
 
       {/* User Routes */}
       <Route path="/dashboard" element={
-        <ProtectedRoute>
+        // <ProtectedRoute>
           <UserLayout>
             <UserDashboard />
           </UserLayout>
-        </ProtectedRoute>
+        // </ProtectedRoute>
       } />
       <Route path="/profile" element={
-        <ProtectedRoute>
+
           <UserLayout>
             <UserProfile />
           </UserLayout>
-        </ProtectedRoute>
+
       } />
       <Route path="/create-content" element={
         <ProtectedRoute>
