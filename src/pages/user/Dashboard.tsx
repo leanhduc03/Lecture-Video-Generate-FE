@@ -8,6 +8,9 @@ const Dashboard = () => {
   const handleGetStarted = () => {
     navigate('/create-content');
   };
+  const handleViewRecentVideos = () => {
+    navigate('/my-videos');
+  };
 
   return (
     <div className="dashboard">
@@ -27,7 +30,7 @@ const Dashboard = () => {
         <div className="card">
           <h3>Video Gần Đây</h3>
           <p>Xem các video đã tạo gần đây.</p>
-          <button className="btn-secondary">Xem</button>
+          <button className="btn-secondary" onClick={handleViewRecentVideos}>Xem</button>
         </div>
 
         <div className="card">

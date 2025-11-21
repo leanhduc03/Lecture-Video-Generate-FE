@@ -56,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Sau khi đăng nhập, lấy thông tin người dùng
       const userData = await getCurrentUser();
       setUser(userData);
+      localStorage.setItem('username', username);
       
       // Chuyển hướng dựa vào vai trò
       if (userData.role === 'admin') {
@@ -73,6 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('username');
     setUser(null);
     navigate('/login');
   };

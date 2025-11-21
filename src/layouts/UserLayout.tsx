@@ -22,9 +22,9 @@ const UserLayout = ({ children }: UserLayoutProps) => {
               <li>
                 <Link to="/dashboard">Trang chủ</Link>
               </li>
-              <li>
+              {/* <li>
                 <Link to="/create">Tạo video</Link>
-              </li>
+              </li> */}
               <li>
                 <Link to="/my-videos">Video của tôi</Link>
               </li>

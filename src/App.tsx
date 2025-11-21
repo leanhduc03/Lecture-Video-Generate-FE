@@ -21,10 +21,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 import UserDashboard from './pages/user/Dashboard';
 import UserProfile from './pages/user/Profile';
 import CreateContent from './pages/user/CreateContent';
+import MyVideos from './pages/user/MyVideos';
+import AllVideos from './pages/admin/AllVideos';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminUserManagement from './pages/admin/UserManagement';
+import AdminProfile from './pages/admin/Profile';
 
 // Common & Error Pages
 import NotFound from './pages/NotFound';
@@ -81,6 +84,13 @@ function App() {
           </UserLayout>
         </ProtectedRoute>
       } />
+      <Route path="/my-videos" element={
+        <ProtectedRoute>
+          <UserLayout>
+            <MyVideos />
+          </UserLayout>
+        </ProtectedRoute>
+      } />
 
       {/* Admin Routes */}
       <Route path="/admin/dashboard" element={
@@ -97,6 +107,17 @@ function App() {
           </AdminLayout>
         </ProtectedRoute>
       } />
+      <Route path="/admin/videos" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <AllVideos />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/profile" element={
+                <ProtectedRoute requireAdmin>
+          <AdminLayout><AdminProfile />
+            </AdminLayout></ProtectedRoute>} />
 
       {/* Other Routes */}
       <Route path="/unauthorized" element={<Unauthorized />} />
