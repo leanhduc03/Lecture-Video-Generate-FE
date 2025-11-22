@@ -48,10 +48,7 @@ const path = {
 
 const SlideToVideo = () => {
   const { user } = useAuth();
-  // PPTX + slides metadata
-  const [pptxFile, setPptxFile] = useState<File | null>(null);
-  const [slides, setSlides] = useState<Array<{id:string, image_url:string, order:number}>>([]);
-  const [pptxUploading, setPptxUploading] = useState(false);
+  
   // Input content
   const [inputContent, setInputContent] = useState<string>('');
   const [numSlides, setNumSlides] = useState<number | undefined>(undefined);
