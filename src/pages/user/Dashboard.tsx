@@ -9,6 +9,9 @@ const Dashboard = () => {
   const handleGetStarted = () => {
     navigate('/create-content');
   };
+  const handleViewRecentVideos = () => {
+    navigate('/my-videos');
+  };
 
   return (
     <div className="dashboard">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/combined-ai-feature.css';
 import { 
   uploadPptx,
@@ -8,6 +9,9 @@ import {
   combineSlideImageAndVideo,
   concatVideos
 } from '../../services/aiService';
+import { 
+  saveVideo
+ } from '../../services/videoService';
 
 // API service cho generate slides
 const API_BASE_URL = 'http://localhost:8000/api/v1';
@@ -43,6 +47,11 @@ const path = {
 };
 
 const SlideToVideo = () => {
+  const { user } = useAuth();
+  // PPTX + slides metadata
+  const [pptxFile, setPptxFile] = useState<File | null>(null);
+  const [slides, setSlides] = useState<Array<{id:string, image_url:string, order:number}>>([]);
+  const [pptxUploading, setPptxUploading] = useState(false);
   // Input content
   const [inputContent, setInputContent] = useState<string>('');
   const [numSlides, setNumSlides] = useState<number | undefined>(undefined);
@@ -507,7 +516,16 @@ const SlideToVideo = () => {
       const finalResp = await concatVideos(composedSlideUrls);
       if (finalResp && finalResp.result_url) {
         setFinalVideoUrl(finalResp.result_url);
-        setProcessingMessage('Hoàn tất. Video cuối đã sẵn sàng.');
+        try {
+          if (!user?.username) {
+            throw new Error('Không xác định được user');
+          }
+          await saveVideo(finalResp.result_url, user.username);
+          setProcessingMessage('Hoàn tất. Video đã được lưu vào hệ thống.');
+        } catch (saveError) {
+          console.error('Lỗi khi lưu video:', saveError);
+          setProcessingMessage('Video đã tạo xong nhưng không lưu được vào hệ thống.');
+        }
       } else {
         throw new Error('Không tạo được video cuối cùng');
       }

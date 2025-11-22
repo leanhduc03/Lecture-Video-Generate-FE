@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  is_active: boolean;
-  created_at: string;
-}
+import { 
+  getUsers, 
+  updateUser, 
+  deleteUser, 
+  User, 
+  UserUpdateData 
+} from '../../services/adminService';
 
 const UserManagement = () => {
   const { user: currentUser } = useAuth();
@@ -17,6 +14,7 @@ const UserManagement = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({
@@ -36,12 +34,13 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     setLoading(true);
+    setError('');
     try {
-      const response = await axios.get(`/api/v1/users?skip=${(page - 1) * limit}&limit=${limit}`);
-      setUsers(response.data.items);
-      setTotalUsers(response.data.total);
+      const response = await getUsers((page - 1) * limit, limit);
+      setUsers(response.items);
+      setTotalUsers(response.total);
     } catch (err: any) {
-      setError('Không thể tải danh sách người dùng');
+      setError(err.response?.data?.detail || 'Không thể tải danh sách người dùng');
       console.error(err);
     } finally {
       setLoading(false);
@@ -57,16 +56,20 @@ const UserManagement = () => {
       password: ''
     });
     setEditMode(true);
+    setError('');
+    setSuccess('');
   };
 
   const handleDelete = async (userId: number) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
       try {
-        await axios.delete(`/api/v1/users/${userId}`);
+        await deleteUser(userId);
         setUsers(users.filter(user => user.id !== userId));
         setTotalUsers(prev => prev - 1);
+        setSuccess('Xóa người dùng thành công');
+        setTimeout(() => setSuccess(''), 3000);
       } catch (err: any) {
-        setError('Không thể xóa người dùng');
+        setError(err.response?.data?.detail || 'Không thể xóa người dùng');
         console.error(err);
       }
     }
@@ -76,27 +79,35 @@ const UserManagement = () => {
     e.preventDefault();
     if (!selectedUser) return;
 
+    setError('');
+    setSuccess('');
+
     try {
       // Chỉ gửi những trường đã thay đổi
-      const updateData: any = {};
+      const updateData: UserUpdateData = {};
       if (formData.email !== selectedUser.email) updateData.email = formData.email;
       if (formData.role !== selectedUser.role) updateData.role = formData.role;
       if (formData.is_active !== selectedUser.is_active) updateData.is_active = formData.is_active;
       if (formData.password) updateData.password = formData.password;
 
-      await axios.put(`/api/v1/users/${selectedUser.id}`, updateData);
+      if (Object.keys(updateData).length === 0) {
+        setError('Không có thông tin nào được thay đổi');
+        return;
+      }
+
+      const updatedUser = await updateUser(selectedUser.id, updateData);
       
       // Cập nhật danh sách người dùng
       setUsers(users.map(user => 
-        user.id === selectedUser.id 
-          ? { ...user, email: formData.email, role: formData.role, is_active: formData.is_active }
-          : user
+        user.id === selectedUser.id ? updatedUser : user
       ));
       
+      setSuccess('Cập nhật thông tin người dùng thành công');
       setEditMode(false);
       setSelectedUser(null);
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
-      setError('Không thể cập nhật thông tin người dùng');
+      setError(err.response?.data?.detail || 'Không thể cập nhật thông tin người dùng');
       console.error(err);
     }
   };
@@ -116,13 +127,19 @@ const UserManagement = () => {
     return <div className="loading">Đang tải dữ liệu...</div>;
   }
 
+  const totalPages = Math.ceil(totalUsers / limit);
+
   return (
     <div className="user-management">
       <h1>Quản lý người dùng</h1>
+      
       {error && <div className="error-message">{error}</div>}
+      {success && <div className="success-message">{success}</div>}
 
       <div className="user-list-container">
-        <h2>Danh sách người dùng ({totalUsers})</h2>
+        <div className="list-header">
+          <h2>Danh sách người dùng ({totalUsers})</h2>
+        </div>
         
         <table className="user-table">
           <thead>
@@ -137,61 +154,87 @@ const UserManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
-              <tr key={user.id}>
-                <td>{user.id}</td>
-                <td>{user.username}</td>
-                <td>{user.email}</td>
-                <td>{user.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}</td>
-                <td>
-                  <span className={`status ${user.is_active ? 'active' : 'inactive'}`}>
-                    {user.is_active ? 'Hoạt động' : 'Chưa kích hoạt'}
-                  </span>
-                </td>
-                <td>{new Date(user.created_at).toLocaleDateString('vi-VN')}</td>
-                <td>
-                  <button 
-                    className="btn-edit" 
-                    onClick={() => handleEdit(user)}
-                    disabled={user.id === currentUser?.id}
-                  >
-                    Sửa
-                  </button>
-                  <button 
-                    className="btn-delete" 
-                    onClick={() => handleDelete(user.id)}
-                    disabled={user.id === currentUser?.id}
-                  >
-                    Xóa
-                  </button>
-                </td>
+            {users.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center' }}>Không có người dùng nào</td>
               </tr>
-            ))}
+            ) : (
+              users.map(user => (
+                <tr key={user.id}>
+                  <td>{user.id}</td>
+                  <td>{user.username}</td>
+                  <td>{user.email}</td>
+                  <td>
+                    <span className={`role-badge ${user.role}`}>
+                      {user.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`status ${user.is_active ? 'active' : 'inactive'}`}>
+                      {user.is_active ? 'Hoạt động' : 'Chưa kích hoạt'}
+                    </span>
+                  </td>
+                  <td>{new Date(user.created_at).toLocaleDateString('vi-VN')}</td>
+                  <td>
+                    <button 
+                      className="btn-edit" 
+                      onClick={() => handleEdit(user)}
+                      disabled={user.id === currentUser?.id}
+                      title={user.id === currentUser?.id ? 'Không thể sửa tài khoản của chính mình' : 'Sửa'}
+                    >
+                      Sửa
+                    </button>
+                    <button 
+                      className="btn-delete" 
+                      onClick={() => handleDelete(user.id)}
+                      disabled={user.id === currentUser?.id}
+                      title={user.id === currentUser?.id ? 'Không thể xóa tài khoản của chính mình' : 'Xóa'}
+                    >
+                      Xóa
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
 
         {/* Phân trang */}
-        <div className="pagination">
-          <button 
-            onClick={() => setPage(prev => Math.max(1, prev - 1))}
-            disabled={page === 1}
-          >
-            Trước
-          </button>
-          <span>Trang {page} / {Math.ceil(totalUsers / limit)}</span>
-          <button 
-            onClick={() => setPage(prev => (prev * limit < totalUsers ? prev + 1 : prev))}
-            disabled={page * limit >= totalUsers}
-          >
-            Sau
-          </button>
-        </div>
+        {totalPages > 1 && (
+          <div className="pagination">
+            <button 
+              onClick={() => setPage(1)}
+              disabled={page === 1}
+            >
+              Đầu
+            </button>
+            <button 
+              onClick={() => setPage(prev => Math.max(1, prev - 1))}
+              disabled={page === 1}
+            >
+              Trước
+            </button>
+            <span>Trang {page} / {totalPages}</span>
+            <button 
+              onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={page >= totalPages}
+            >
+              Sau
+            </button>
+            <button 
+              onClick={() => setPage(totalPages)}
+              disabled={page >= totalPages}
+            >
+              Cuối
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Modal chỉnh sửa */}
       {editMode && selectedUser && (
-        <div className="edit-modal">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setEditMode(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>Chỉnh sửa người dùng</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -225,17 +268,15 @@ const UserManagement = () => {
               </div>
               
               <div className="form-group">
-                <label htmlFor="is_active">Trạng thái:</label>
-                <div className="checkbox-group">
+                <label className="checkbox-label">
                   <input
                     type="checkbox"
-                    id="is_active"
                     name="is_active"
                     checked={formData.is_active}
                     onChange={handleInputChange}
                   />
-                  <label htmlFor="is_active">Hoạt động</label>
-                </div>
+                  <span>Tài khoản đang hoạt động</span>
+                </label>
               </div>
               
               <div className="form-group">
@@ -246,6 +287,7 @@ const UserManagement = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
+                  minLength={6}
                 />
               </div>
               
@@ -257,6 +299,7 @@ const UserManagement = () => {
                   onClick={() => {
                     setEditMode(false);
                     setSelectedUser(null);
+                    setError('');
                   }}
                 >
                   Hủy

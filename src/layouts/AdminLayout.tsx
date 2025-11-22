@@ -48,9 +48,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
               <li>
                 <Link to="/admin/videos">Quản lý video</Link>
               </li>
-              <li>
+              {/* <li>
                 <Link to="/admin/settings">Cài đặt hệ thống</Link>
-              </li>
+              </li> */}
             </ul>
           </nav>
         </aside>

@@ -1,17 +1,36 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getSystemStats, SystemStats } from '../../services/adminService';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const [stats, setStats] = useState<SystemStats>({
+    totalUsers: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
+    adminUsers: 0,
+    regularUsers: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  // Thống kê mẫu
-  const stats = {
-    totalUsers: 124,
-    activeUsers: 98,
-    pendingVerification: 26,
-    videosCreated: 512,
-    storageUsed: '125.4 GB',
-    systemUptime: '99.8%'
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const data = await getSystemStats();
+      setStats(data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading) {
+    return <div className="loading">Đang tải dữ liệu...</div>;
+  }
 
   return (
     <div className="admin-dashboard">
@@ -33,57 +52,18 @@ const Dashboard = () => {
             <p className="stat-value">{stats.activeUsers}</p>
           </div>
           <div className="stat-card">
-            <h3>Đang chờ xác thực</h3>
-            <p className="stat-value">{stats.pendingVerification}</p>
+            <h3>Chưa kích hoạt</h3>
+            <p className="stat-value">{stats.inactiveUsers}</p>
           </div>
           <div className="stat-card">
-            <h3>Video đã tạo</h3>
-            <p className="stat-value">{stats.videosCreated}</p>
+            <h3>Quản trị viên</h3>
+            <p className="stat-value">{stats.adminUsers}</p>
           </div>
           <div className="stat-card">
-            <h3>Dung lượng đã dùng</h3>
-            <p className="stat-value">{stats.storageUsed}</p>
-          </div>
-          <div className="stat-card">
-            <h3>Uptime hệ thống</h3>
-            <p className="stat-value">{stats.systemUptime}</p>
+            <h3>Người dùng thường</h3>
+            <p className="stat-value">{stats.regularUsers}</p>
           </div>
         </div>
-      </div>
-
-      <div className="recent-activity">
-        <h2>Hoạt động gần đây</h2>
-        <table className="activity-table">
-          <thead>
-            <tr>
-              <th>Thời gian</th>
-              <th>Người dùng</th>
-              <th>Hoạt động</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>01/08/2025 14:22</td>
-              <td>user123</td>
-              <td>Đăng ký tài khoản mới</td>
-            </tr>
-            <tr>
-              <td>01/08/2025 13:15</td>
-              <td>teacher_vn</td>
-              <td>Tạo video mới</td>
-            </tr>
-            <tr>
-              <td>01/08/2025 12:05</td>
-              <td>student2025</td>
-              <td>Xác thực email</td>
-            </tr>
-            <tr>
-              <td>01/08/2025 10:30</td>
-              <td>lecture_creator</td>
-              <td>Đặt lại mật khẩu</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
   );
