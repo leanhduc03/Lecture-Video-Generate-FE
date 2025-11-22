@@ -140,6 +140,41 @@ select {
   border-radius: 4px;
 }
 
+.preview-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.slide-navigation button {
+  padding: 8px 16px;
+  margin: 0 5px;
+  border: 1px solid #ddd;
+  background: #f8f9fa;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.slide-navigation button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.slide-navigation button:hover:not(:disabled) {
+  background: #e9ecef;
+}
+
+.slide-preview {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slide-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
 .buttons-container {
   display: flex;
   justify-content: space-between;
@@ -239,9 +274,73 @@ button:disabled {
 }
 
 .error-message {
-  background-color: #ffebee;
-  color: #c62828;
+  background: #f8d7da;
+  color: #721c24;
   padding: 10px;
   border-radius: 4px;
-  margin: 10px 0;
+  margin-bottom: 15px;
+  border: 1px solid #f5c6cb;
+}
+
+.download-loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  z-index: 1000;
+}
+
+.step-content {
+  margin-bottom: 30px;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.step-content h3 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 8px;
+}
+
+input[type="radio"] {
+  margin-right: 8px;
+}
+
+label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #f8f9fa;
+}
+
+button:hover {
+  background: #e9ecef;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.download-button {
+  background: #17a2b8 !important;
+  color: white !important;
+  border-color: #17a2b8 !important;
+}
+
+.download-button:hover {
+  background: #138496 !important;
 }

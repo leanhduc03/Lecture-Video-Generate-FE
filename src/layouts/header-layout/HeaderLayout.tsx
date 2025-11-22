@@ -14,7 +14,7 @@ const HeaderLayout = () => {
                     </div>
                     <nav className="header-menu">
                         <div className='header-menu-item'>
-                            <Link to="/create">Tạo video</Link>
+                            <Link to="/create-content">Tạo video</Link>
                         </div>
                         <div className='header-menu-item'>
                             <Link to="/my-videos">Video của tôi</Link>
