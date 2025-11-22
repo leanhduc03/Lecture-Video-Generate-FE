@@ -59,57 +59,64 @@ const Profile = () => {
 
   return (
     <div className="profile-container">
-      <h1>Thông tin cá nhân</h1>
+      <section className="board">
+          <h1 className="board-title">Thông tin cá nhân</h1>
+          <p className="board-description">Quản lý thông tin của bạn và cập nhật mật khẩu.</p>
+      </section>
       
       {success && <div className="success-message">Cập nhật thông tin thành công!</div>}
       {error && <div className="error-message">{error}</div>}
-      
-      <div className="profile-info">
-        <p><strong>Tên đăng nhập:</strong> {user?.username}</p>
-        <p><strong>Vai trò:</strong> {user?.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}</p>
-        <p><strong>Ngày tạo:</strong> {new Date(user?.created_at || '').toLocaleDateString('vi-VN')}</p>
-      </div>
-      
-      <div className="profile-edit">
-        <h2>Cập nhật thông tin</h2>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email:</label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+
+      <div className="profile-wrapper">
+          <div className="profile-info">
+              <div className="profile-info-wrapper">
+                  <h2 className="header-title">Thông tin tài khoản</h2>
+                  <div className="content">
+                      <div>
+                          <h3 className="field-info">Tên đăng nhập</h3>
+                          <p className="field-value">{user?.username}</p>
+                      </div>
+                      <div>
+                          <h3 className="field-info">Vai trò</h3>
+                          <p className="field-value">{user?.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}</p>
+                      </div>
+                      <div>
+                          <h3 className="field-info">Ngày tạo</h3>
+                          <p className="field-value">{new Date(user?.created_at || '').toLocaleDateString('vi-VN')}</p>
+                      </div>
+                  </div>
+              </div>
           </div>
-          
-          <div className="form-group">
-            <label htmlFor="password">Mật khẩu mới (để trống nếu không đổi):</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+          <div className="profile-form">
+              <div className="profile-form-wrapper">
+                  <h2 className="header-title">Cập nhật thông tin</h2>
+                  <form className="form" onSubmit={handleSubmit}>
+                      <div>
+                          <label className="form-label">Email</label>
+                          <div className="input-wrapper">
+                              <input className="input-field" id="email" placeholder="you@example.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required/>
+                          </div>
+                      </div>
+                      <div>
+                          <label className="form-label">Mật khẩu mới (để trống nếu không đổi)</label>
+                          <div className="input-wrapper">
+                              <input className="input-field" id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}/>
+                          </div>
+                      </div>
+                      <div>
+                          <label className="form-label">Xác nhận mật khẩu mới</label>
+                          <div className="input-wrapper">
+                              <input className="input-field" id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={!password} />
+                          </div>
+                      </div>
+                      <div className="btn-wrapper">
+                          <button className="btn-submit" type="submit" disabled={loading}>
+                              {loading ? 'Đang cập nhật...' : 'Cập nhật thông tin'}
+                          </button>
+                      </div>
+                  </form>
+              </div>
           </div>
-          
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Xác nhận mật khẩu mới:</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={!password}
-            />
-          </div>
-          
-          <button type="submit" disabled={loading}>
-            {loading ? 'Đang cập nhật...' : 'Cập nhật thông tin'}
-          </button>
-        </form>
       </div>
     </div>
   );

@@ -22,12 +22,12 @@ const CreateContent = () => {
           >
             Slide to Video
           </button>
-          <button
+          {/* <button
             className={`tab ${activeTab === 'combined' ? 'active' : ''}`}
             onClick={() => setActiveTab('combined')}
           >
             Video AI Tổng Hợp
-          </button>
+          </button> */}
           <button
             className={`tab ${activeTab === 'tts' ? 'active' : ''}`}
             onClick={() => setActiveTab('tts')}

@@ -51,15 +51,15 @@ const SlideToVideo = () => {
   // Presentation metadata
   const [metadata, setMetadata] = useState<PresentationMetadata | null>(null);
   const [slides, setSlides] = useState<SlideMetadata[]>([]);
-  const [originalSlideCount, setOriginalSlideCount] = useState<number>(0);
 
   // User uploaded PPTX
   const [userUploadedPptx, setUserUploadedPptx] = useState<File | null>(null);
   const [isUploadingPptx, setIsUploadingPptx] = useState(false);
 
-  // Preview mode
-  const [previewMode, setPreviewMode] = useState(false);
-  const [currentPreviewSlide, setCurrentPreviewSlide] = useState(0);
+  // Edit mode
+  const [editMode, setEditMode] = useState(false);
+  const [editedSlideData, setEditedSlideData] = useState<SlideData[]>([]);
+  const [isSavingMetadata, setIsSavingMetadata] = useState(false);
 
   // Video and voice selection
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
@@ -95,7 +95,6 @@ const SlideToVideo = () => {
     setError(null);
     
     try {
-      // 1. Tạo PPTX và JSON
       const response = await fetch(`${API_BASE_URL}/slides/generate`, {
         method: 'POST',
         headers: {
@@ -114,10 +113,8 @@ const SlideToVideo = () => {
       const result = await response.json();
       
       if (result.success && result.data?.pptx_file) {
-        // 2. Upload PPTX để tách thành slide images
         const pptxPath = result.data.pptx_file.filepath;
         await uploadAndProcessPPTX(pptxPath, result.data.json_file?.filename);
-        setOriginalSlideCount(result.data.num_slides);
       } else {
         throw new Error(result.message || 'Lỗi khi tạo slides');
       }
@@ -128,59 +125,42 @@ const SlideToVideo = () => {
     }
   };
 
-  // Upload PPTX và tách thành images
   const uploadAndProcessPPTX = async (pptxPath: string, jsonFilename: string) => {
     try {
-      console.log('Starting PPTX processing...', { pptxPath, jsonFilename });
-      
-      // Đọc file PPTX từ server và tạo File object để upload
       const pptxFilename = path.basename(pptxPath);
       const pptxResponse = await fetch(`${API_BASE_URL}/slides/download/${pptxFilename}`);
       
       if (!pptxResponse.ok) {
-        throw new Error(`Không thể tải file PPTX: ${pptxResponse.status} ${pptxResponse.statusText}`);
+        throw new Error(`Không thể tải file PPTX: ${pptxResponse.status}`);
       }
 
-      console.log('Downloaded PPTX successfully');
-      
       const pptxBlob = await pptxResponse.blob();
       const pptxFile = new File([pptxBlob], pptxFilename, { 
         type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
       });
 
-      console.log('Created File object:', pptxFile.name, pptxFile.size, 'bytes');
-
-      // Upload PPTX để tách thành slide images
       const formData = new FormData();
       formData.append('file', pptxFile);
 
-      console.log('Uploading to /media/upload-pptx...');
-      
       const uploadResponse = await fetch(`${API_BASE_URL}/media/upload-pptx`, {
         method: 'POST',
         body: formData
       });
 
-      console.log('Upload response status:', uploadResponse.status);
-      
       if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('Upload error response:', errorText);
-        throw new Error(`Không thể tách slides thành images: ${uploadResponse.status} - ${errorText}`);
+        throw new Error('Không thể tách slides thành images');
       }
 
       const uploadResult = await uploadResponse.json();
-      console.log('Upload result:', uploadResult);
       
       if (uploadResult.success && uploadResult.slides) {
-        // 3. Lấy metadata JSON
         if (jsonFilename) {
           await fetchSlideMetadata(jsonFilename, uploadResult.slides);
         } else {
           throw new Error('Không tìm thấy JSON metadata');
         }
       } else {
-        throw new Error(`Không tách được slides thành images: ${JSON.stringify(uploadResult)}`);
+        throw new Error('Không tách được slides thành images');
       }
     } catch (err: any) {
       console.error('Upload and process PPTX error', err);
@@ -190,7 +170,6 @@ const SlideToVideo = () => {
     }
   };
 
-  // Fetch slide metadata và kết hợp với slide images
   const fetchSlideMetadata = async (jsonFilename: string, slideImages: any[]) => {
     try {
       const response = await fetch(`${API_BASE_URL}/slides/metadata/${jsonFilename}`);
@@ -202,7 +181,6 @@ const SlideToVideo = () => {
       const result = await response.json();
       
       if (result.success && result.data) {
-        // Kết hợp metadata với slide images từ media API
         const combinedMetadata = {
           ...result.data,
           slides: slideImages.map((img, idx) => ({
@@ -213,8 +191,6 @@ const SlideToVideo = () => {
             filename: `slide_${idx}.png`
           }))
         };
-        
-        console.log('Combined metadata:', combinedMetadata);
         
         setMetadata(combinedMetadata);
         setSlides(combinedMetadata.slides);
@@ -227,7 +203,6 @@ const SlideToVideo = () => {
     }
   };
 
-  // Download PPTX để user có thể sửa
   const downloadPptxForEdit = async () => {
     if (!metadata) return;
     
@@ -255,7 +230,6 @@ const SlideToVideo = () => {
     }
   };
 
-  // Handle user upload edited PPTX
   const handleUserUploadPptx = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setUserUploadedPptx(e.target.files[0]);
@@ -287,13 +261,6 @@ const SlideToVideo = () => {
       const result = await response.json();
       
       if (result.success && result.slides) {
-        // Kiểm tra số lượng slide
-        if (result.slides.length !== originalSlideCount) {
-          setError(`Số slide không khớp! Mong đợi ${originalSlideCount} slides, nhưng nhận được ${result.slides.length} slides.`);
-          return;
-        }
-
-        // Cập nhật slides với images mới
         const updatedSlides = result.slides.map((img: any, idx: number) => ({
           slide_number: idx,
           type: idx === 0 ? 'title' : 'content',
@@ -304,6 +271,8 @@ const SlideToVideo = () => {
 
         setSlides(updatedSlides);
         setMetadata(prev => prev ? { ...prev, slides: updatedSlides } : null);
+        
+        enterEditMode(result.slides.length);
         setError(null);
       } else {
         throw new Error('Không thể tách slides thành images');
@@ -316,60 +285,122 @@ const SlideToVideo = () => {
     }
   };
 
-  // Preview slides
-  const enterPreviewMode = () => {
-    setPreviewMode(true);
-    setCurrentPreviewSlide(0);
+  // Enter edit mode - CHỈ HIỂN THỊ ORIGINAL_CONTENT
+  const enterEditMode = (newSlideCount?: number) => {
+    if (!metadata) return;
+    
+    const originalSlides = metadata.slide_data.slides;
+    const currentSlideCount = newSlideCount || slides.length;
+    
+    const editData: SlideData[] = [];
+    
+    for (let i = 0; i < currentSlideCount; i++) {
+      const originalSlide = originalSlides.find(s => s.slide_number === i);
+      
+      if (originalSlide) {
+        editData.push({
+          slide_number: i,
+          title: originalSlide.title,
+          content: originalSlide.content,
+          original_content: originalSlide.original_content
+        });
+      } else {
+        editData.push({
+          slide_number: i,
+          title: `Slide ${i + 1}`,
+          content: [],
+          original_content: ''
+        });
+      }
+    }
+    
+    setEditedSlideData(editData);
+    setEditMode(true);
   };
 
-  const exitPreviewMode = () => {
-    setPreviewMode(false);
+  // Update only original_content
+  const updateOriginalContent = (slideIndex: number, value: string) => {
+    setEditedSlideData(prev => {
+      const updated = [...prev];
+      if (updated[slideIndex]) {
+        updated[slideIndex] = { ...updated[slideIndex], original_content: value };
+      }
+      return updated;
+    });
   };
 
-  const nextSlide = () => {
-    if (currentPreviewSlide < slides.length - 1) {
-      setCurrentPreviewSlide(currentPreviewSlide + 1);
+  const saveMetadata = async () => {
+    if (!metadata || !editedSlideData.length) {
+      setError('Không có dữ liệu để lưu');
+      return;
+    }
+
+    setIsSavingMetadata(true);
+    setError(null);
+
+    try {
+      const updatedMetadata = {
+        ...metadata.slide_data,
+        slides: editedSlideData
+      };
+
+      const response = await fetch(`${API_BASE_URL}/slides/save-metadata`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedMetadata)
+      });
+
+      if (!response.ok) {
+        throw new Error('Không thể lưu metadata');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setMetadata(prev => prev ? { ...prev, slide_data: updatedMetadata } : null);
+        setEditMode(false);
+        setError(null);
+      } else {
+        throw new Error(result.message || 'Lỗi khi lưu metadata');
+      }
+    } catch (err: any) {
+      console.error('Save metadata error', err);
+      setError(err?.message || 'Lỗi khi lưu metadata');
+    } finally {
+      setIsSavingMetadata(false);
     }
   };
 
-  const prevSlide = () => {
-    if (currentPreviewSlide > 0) {
-      setCurrentPreviewSlide(currentPreviewSlide - 1);
-    }
-  };
-
-  // Video selection
   const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedVideoFile(e.target.files[0]);
-      setSelectedVideoUrl(''); // Clear preset selection
+      setSelectedVideoUrl('');
     }
   };
 
   const handleVideoPresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedVideoUrl(e.target.value);
-    setSelectedVideoFile(null); // Clear file selection
+    setSelectedVideoFile(null);
   };
 
-  // Voice selection
   const handleVoiceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedVoiceFile(e.target.files[0]);
-      setSelectedVoiceUrl(''); // Clear preset selection
+      setSelectedVoiceUrl('');
     }
   };
 
   const handleVoicePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedVoiceUrl(e.target.value);
-    setSelectedVoiceFile(null); // Clear file selection
+    setSelectedVoiceFile(null);
   };
 
-  // Upload files and get URLs
   const uploadSelectedFiles = async () => {
     let videoUrl = selectedVideoUrl;
     let voiceUrl = selectedVoiceUrl;
 
-    // Upload video if file selected
     if (selectedVideoFile) {
       const formData = new FormData();
       formData.append('file', selectedVideoFile);
@@ -387,7 +418,6 @@ const SlideToVideo = () => {
       }
     }
 
-    // Upload voice if file selected
     if (selectedVoiceFile) {
       const formData = new FormData();
       formData.append('file', selectedVoiceFile);
@@ -408,7 +438,6 @@ const SlideToVideo = () => {
     return { videoUrl, voiceUrl };
   };
 
-  // Process all slides and create final video
   const processAllSlidesAndCreateVideo = async () => {
     if (!metadata || slides.length === 0) {
       setError('Chưa có slide để xử lý');
@@ -435,7 +464,6 @@ const SlideToVideo = () => {
       setProcessingMessage('Đang upload files...');
       const { videoUrl, voiceUrl } = await uploadSelectedFiles();
 
-      // Bỏ qua slide tiêu đề (slide_number = 0)
       const contentSlides = slides.filter(s => s.type !== 'title');
       
       for (let i = 0; i < contentSlides.length; i++) {
@@ -444,7 +472,6 @@ const SlideToVideo = () => {
         
         setProcessingMessage(`Xử lý slide ${i+1}/${contentSlides.length}: ${slideData?.title || 'Untitled'}...`);
         
-        // Lấy content từ metadata
         const narrationText = slideData?.original_content || '';
         
         if (!narrationText) {
@@ -452,22 +479,22 @@ const SlideToVideo = () => {
           continue;
         }
 
-        // 1) Tạo TTS
+        // TTS
         const ttsResp = await generateSpeech(narrationText, voiceUrl);
         if (!ttsResp || !ttsResp.audio_file_url) {
           throw new Error(`Không tạo được audio cho slide ${slide.slide_number}`);
         }
         const audioUrl = ttsResp.audio_file_url;
 
-        // 2) Fakelip
+        // Fakelip
         const fakelipResp = await processFakelip(audioUrl, videoUrl);
         if (!fakelipResp || !fakelipResp.result_url) {
           throw new Error(`Fakelip thất bại cho slide ${slide.slide_number}`);
         }
         const lipVideoUrl = fakelipResp.result_url;
 
-        // 3) Combine slide image + lipVideo
-        const slideImageUrl = slide.filepath.replace(/\\/g, '/'); // Normalize path
+        // Combine
+        const slideImageUrl = slide.filepath.replace(/\\/g, '/');
         const combineResp = await combineSlideImageAndVideo(slideImageUrl, lipVideoUrl);
         if (!combineResp || !combineResp.result_url) {
           throw new Error(`Không ghép được slide ${slide.slide_number} và video`);
@@ -475,7 +502,7 @@ const SlideToVideo = () => {
         composedSlideUrls.push(combineResp.result_url);
       }
 
-      // 4) Concat tất cả video
+      // Concat
       setProcessingMessage('Ghép các đoạn slide lại thành video hoàn chỉnh...');
       const finalResp = await concatVideos(composedSlideUrls);
       if (finalResp && finalResp.result_url) {
@@ -497,10 +524,9 @@ const SlideToVideo = () => {
     setNumSlides(undefined);
     setMetadata(null);
     setSlides([]);
-    setOriginalSlideCount(0);
     setUserUploadedPptx(null);
-    setPreviewMode(false);
-    setCurrentPreviewSlide(0);
+    setEditMode(false);
+    setEditedSlideData([]);
     setSelectedVideoFile(null);
     setSelectedVideoUrl(videoOptions[0].url);
     setSelectedVoiceFile(null);
@@ -544,62 +570,129 @@ const SlideToVideo = () => {
     }
   };
 
-  // Initialize default selections
   useEffect(() => {
     setSelectedVideoUrl(videoOptions[0].url);
     setSelectedVoiceUrl(voiceOptions[0].url);
   }, []);
 
-  // Preview mode render
-  if (previewMode && metadata && slides.length > 0) {
-    const currentSlide = slides[currentPreviewSlide];
-    const currentSlideData = metadata.slide_data.slides.find(sd => sd.slide_number === currentSlide?.slide_number);
-    
+  // EDIT MODE - CHỈ HIỂN THỊ SLIDE IMAGE VÀ ORIGINAL_CONTENT
+  if (editMode && editedSlideData.length > 0) {
     return (
       <div className="combined-ai-feature">
-        <h2>Preview Slides</h2>
+        <h2>Chỉnh sửa nội dung thuyết trình</h2>
         
-        <div className="preview-container" style={{textAlign: 'center'}}>
-          <div className="slide-navigation" style={{marginBottom: 20}}>
-            <button onClick={prevSlide} disabled={currentPreviewSlide === 0}>
-              ← Previous
-            </button>
-            <span style={{margin: '0 20px'}}>
-              Slide {currentPreviewSlide + 1} / {slides.length}
-            </span>
-            <button onClick={nextSlide} disabled={currentPreviewSlide === slides.length - 1}>
-              Next →
-            </button>
-          </div>
-
-          <div className="slide-preview" style={{border: '2px solid #ddd', padding: 20, marginBottom: 20}}>
-            <img 
-              src={currentSlide?.filepath} 
-              alt={`Slide ${currentPreviewSlide + 1}`} 
-              style={{maxWidth: '100%', maxHeight: '60vh'}}
-            />
-          </div>
-
-          {currentSlideData && (
-            <div className="slide-content" style={{textAlign: 'left', background: '#f9f9f9', padding: 15, borderRadius: 5}}>
-              <h4>{currentSlideData.title}</h4>
-              <p><strong>Nội dung thuyết trình:</strong></p>
-              <p>{currentSlideData.original_content}</p>
+        {error && <div className="error-message">{error}</div>}
+        
+        <div className="edit-slides-container">
+          {editedSlideData.map((slideData, index) => (
+            <div key={index} className="slide-edit-section" style={{
+              marginBottom: 30, 
+              padding: 20, 
+              border: '2px solid #e0e0e0', 
+              borderRadius: 8,
+              background: '#f9f9f9'
+            }}>
+              <div style={{display: 'flex', gap: 20, alignItems: 'flex-start'}}>
+                {/* Slide Image */}
+                {slides[index] && (
+                  <div style={{flex: '0 0 300px'}}>
+                    <img 
+                      src={slides[index].filepath} 
+                      alt={`Slide ${index + 1}`} 
+                      style={{
+                        width: '100%', 
+                        border: '2px solid #ccc', 
+                        borderRadius: 8,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                    <div style={{
+                      marginTop: 10, 
+                      textAlign: 'center', 
+                      fontWeight: 'bold',
+                      color: '#333'
+                    }}>
+                      Slide {index + 1}: {slideData.title}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Original Content Editor */}
+                <div style={{flex: 1}}>
+                  <label style={{
+                    display: 'block', 
+                    marginBottom: 8, 
+                    fontWeight: 'bold',
+                    fontSize: '16px',
+                    color: '#333'
+                  }}>
+                    Nội dung thuyết trình cho slide này:
+                  </label>
+                  <textarea
+                    value={slideData.original_content}
+                    onChange={(e) => {
+                      const text = e.target.value;
+                      if (text.length <= 250) {
+                        updateOriginalContent(index, text);
+                      }
+                    }}
+                    placeholder="Nhập nội dung thuyết trình (tối đa 250 ký tự)..."
+                    rows={6}
+                    style={{
+                      width: '100%', 
+                      padding: '12px',
+                      fontSize: '14px',
+                      border: '1px solid #ddd',
+                      borderRadius: 4,
+                      fontFamily: 'inherit',
+                      resize: 'vertical'
+                    }}
+                  />
+                  <div style={{
+                    marginTop: 8,
+                    fontSize: '13px', 
+                    color: slideData.original_content.length > 240 ? '#ff6b6b' : '#666',
+                    fontWeight: slideData.original_content.length > 240 ? 'bold' : 'normal'
+                  }}>
+                    {slideData.original_content.length}/250 ký tự
+                    {slideData.original_content.length > 240 && ' - Gần đạt giới hạn!'}
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-
-          <div style={{marginTop: 20}}>
-            <button onClick={exitPreviewMode} style={{marginRight: 10}}>
-              Quay lại chỉnh sửa
+          ))}
+          
+          <div style={{marginTop: 30, textAlign: 'center', padding: '20px 0', borderTop: '2px solid #ddd'}}>
+            <button 
+              onClick={() => setEditMode(false)}
+              style={{
+                marginRight: 15, 
+                padding: '12px 30px',
+                fontSize: '16px',
+                background: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: 4,
+                cursor: 'pointer'
+              }}
+            >
+              Hủy
             </button>
             <button 
-              onClick={() => {
-                setPreviewMode(false);
-                // Proceed to video selection step
+              onClick={saveMetadata}
+              disabled={isSavingMetadata}
+              style={{
+                padding: '12px 30px',
+                fontSize: '16px',
+                background: isSavingMetadata ? '#ccc' : '#28a745', 
+                color: 'white',
+                border: 'none',
+                borderRadius: 4,
+                cursor: isSavingMetadata ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold'
               }}
-              style={{background: '#28a745', color: 'white'}}
             >
-              OK - Tiếp tục tạo video
+              {isSavingMetadata ? 'Đang lưu...' : '💾 Lưu và tiếp tục'}
             </button>
           </div>
         </div>
@@ -609,11 +702,11 @@ const SlideToVideo = () => {
 
   return (
     <div className="combined-ai-feature">
-      <h2>Slide to Video - Workflow mới</h2>
+      <h2>Slide to Video - Tạo video bài giảng tự động</h2>
 
       {error && <div className="error-message">{error}</div>}
 
-      {/* Step 1: Nhập content và tạo slides */}
+      {/* Step 1 */}
       <section className="step-content">
         <h3>Bước 1: Nhập nội dung và tạo slides</h3>
         <textarea
@@ -649,28 +742,26 @@ const SlideToVideo = () => {
             <strong>✓ Đã tạo thành công:</strong>
             <div>Tiêu đề: {metadata.title}</div>
             <div>Tổng số slides: {metadata.total_slides}</div>
-            <div>Slides nội dung: {metadata.slide_data?.slides?.length || 0}</div>
           </div>
         )}
       </section>
 
-      {/* Step 2: Download and upload edited slides */}
-      {metadata && (
+      {/* Step 2 */}
+      {metadata && !editMode && (
         <section className="step-content">
-          <h3>Bước 2: Tải xuống và chỉnh sửa slides (tùy chọn)</h3>
-          <p>Bạn có thể tải file PowerPoint về để chỉnh sửa, sau đó upload lại:</p>
+          <h3>Bước 2: Tải xuống và chỉnh sửa slides</h3>
           
           <div style={{marginBottom: 15}}>
             <button onClick={downloadPptxForEdit} style={{marginRight: 10}}>
               📥 Tải PPTX về để chỉnh sửa
             </button>
-            <span style={{fontSize: '0.9em', color: '#666'}}>
-              (Không bắt buộc - có thể bỏ qua bước này)
-            </span>
+            <button onClick={() => enterEditMode()} style={{marginLeft: 10, background: '#17a2b8', color: 'white'}}>
+              ✏️ Chỉnh sửa nội dung thuyết trình
+            </button>
           </div>
 
           <div>
-            <label>Upload PPTX đã chỉnh sửa (nếu có): </label>
+            <label>Hoặc upload PPTX đã chỉnh sửa: </label>
             <input 
               type="file" 
               accept=".pptx" 
@@ -683,21 +774,15 @@ const SlideToVideo = () => {
                 disabled={isUploadingPptx}
                 style={{marginLeft: 10}}
               >
-                {isUploadingPptx ? 'Đang upload...' : 'Upload PPTX đã chỉnh sửa'}
+                {isUploadingPptx ? 'Đang upload...' : 'Upload PPTX'}
               </button>
             )}
-          </div>
-
-          <div style={{marginTop: 15}}>
-            <button onClick={enterPreviewMode} style={{background: '#007bff', color: 'white'}}>
-              👁️ Preview Slides
-            </button>
           </div>
         </section>
       )}
 
-      {/* Step 3: Video and Voice Selection (shown after preview or skip) */}
-      {metadata && !previewMode && (
+      {/* Step 3 */}
+      {metadata && !editMode && (
         <section className="step-content">
           <h3>Bước 3: Chọn video và giọng thuyết trình</h3>
           
