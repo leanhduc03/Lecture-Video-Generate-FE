@@ -10,7 +10,7 @@ const HeaderLayout = () => {
             <div className="header-wrapper">
                 <div className='header-wrapper-content'>
                     <div className="logo">
-                        <Link to="/dashboard" className='logo-text'>banquee.</Link>
+                        <Link to="/dashboard" className='logo-text'>LectureStudio</Link>
                     </div>
                     <nav className="header-menu">
                         <div className='header-menu-item'>

@@ -1,25 +1,24 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import "./login.scss";
+import { Button, Form, Input } from 'antd';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
   const { login } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (values: { username: string; password: string }) => {
     setError('');
     setLoading(true);
-    
+
     try {
-      await login(username, password);
+      await login(values.username, values.password);
     } catch (err: any) {
       setError(
-        err.response?.data?.detail || 
+        err?.response?.data?.detail ||
         'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.'
       );
     } finally {
@@ -28,43 +27,47 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <h2>Đăng nhập</h2>
-      {error && <div className="error-message">{error}</div>}
-      
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="username">Tên đăng nhập:</label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
+      <div className="login-panel">
+      <div className="login-panel__header">
+        <div className="login-panel__brand">
+          <h1 className="login-panel__logo-text">LectureStudio</h1>
         </div>
-        
-        <div className="form-group">
-          <label htmlFor="password">Mật khẩu:</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        
-        <button type="submit" disabled={loading}>
-          {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-        </button>
-      </form>
-      
-      <div className="links">
-        <Link to="/forgot-password">Quên mật khẩu?</Link>
-        <span> | </span>
-        <Link to="/register">Đăng ký tài khoản mới</Link>
+        <h2 className="login-panel__title">Đăng nhập tài khoản của bạn</h2>
+        <p className="login-panel__subtitle">
+          Bạn chưa có tài khoản?{" "}
+          <Link to="/register">Đăng ký tài khoản mới</Link>
+        </p>
       </div>
+      {error && <div className="error-message">{error}</div>}
+      <Form className="login-panel__form" onFinish={handleSubmit}>
+        <div className="login-panel__fields">
+          <Form.Item
+            name="username"
+            rules={[{ required: true, message: "Vui lòng nhập tên đăng nhập" }]}
+          >
+            <Input autoComplete='username' placeholder="Tên đăng nhập"/>
+          </Form.Item>
+          <Form.Item
+            name="password"
+            rules={[{ required: true, message: "Vui lòng nhập mật khẩu" }]}
+          >
+            <Input.Password
+              placeholder="Mật khẩu"
+              autoComplete="current-password"
+            />
+          </Form.Item>
+        </div>
+        <div className="login-panel__submit">
+          <Button type="primary" htmlType="submit" disabled={loading}>
+            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          </Button>
+        </div>
+        <div className="login-panel__actions">
+          <div className="login-panel__forgot">
+            <Link to="/forgot-password">Quên mật khẩu?</Link>
+          </div>
+        </div>
+      </Form>
     </div>
   );
 };
