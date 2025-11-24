@@ -1,32 +1,33 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Button, Form, Input } from 'antd';
 import { register } from '../services/authService';
+import "./register.scss";
 
 const Register = () => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (values: { 
+    username: string; 
+    email: string; 
+    password: string; 
+    confirmPassword: string 
+  }) => {
     setError('');
     
     // Kiểm tra mật khẩu trùng khớp
-    if (password !== confirmPassword) {
+    if (values.password !== values.confirmPassword) {
       setError('Mật khẩu xác nhận không khớp');
       return;
     }
     
     setLoading(true);
     try {
-      await register(username, email, password);
-      // Chuyển hướng tới trang xác thực email với username là tham số
-      navigate(`/verify-email?username=${encodeURIComponent(username)}`);
+      await register(values.username, values.email, values.password);
+      navigate(`/verify-email?username=${encodeURIComponent(values.username)}`);
     } catch (err: any) {
       setError(
         err.response?.data?.detail || 
@@ -38,63 +39,87 @@ const Register = () => {
   };
 
   return (
-    <div className="register-container">
-      <h2>Đăng ký tài khoản</h2>
-      {error && <div className="error-message">{error}</div>}
-      
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="username">Tên đăng nhập:</label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
+    <div className="register-panel">
+      <div className="register-panel__header">
+        <div className="register-panel__brand">
+          <h1 className="register-panel__logo-text">LectureStudio</h1>
         </div>
-        
-        <div className="form-group">
-          <label htmlFor="email">Email:</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="password">Mật khẩu:</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="confirmPassword">Xác nhận mật khẩu:</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
-        </div>
-        
-        <button type="submit" disabled={loading}>
-          {loading ? 'Đang xử lý...' : 'Đăng ký'}
-        </button>
-      </form>
-      
-      <div className="links">
-        <p>Đã có tài khoản? <Link to="/login">Đăng nhập</Link></p>
+        <h2 className="register-panel__title">Tạo tài khoản mới</h2>
+        <p className="register-panel__subtitle">
+          Đã có tài khoản?{" "}
+          <Link to="/login">Đăng nhập ngay</Link>
+        </p>
       </div>
+
+      {error && <div className="error-message">{error}</div>}
+
+      <Form className="register-panel__form" onFinish={handleSubmit}>
+        <div className="register-panel__fields">
+          <Form.Item
+            name="username"
+            rules={[
+              { required: true, message: "Vui lòng nhập tên đăng nhập" },
+              { min: 3, message: "Tên đăng nhập phải có ít nhất 3 ký tự" }
+            ]}
+          >
+            <Input 
+              autoComplete="username" 
+              placeholder="Tên đăng nhập"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            rules={[
+              { required: true, message: "Vui lòng nhập email" },
+              { type: 'email', message: "Email không hợp lệ" }
+            ]}
+          >
+            <Input 
+              type="email"
+              autoComplete="email" 
+              placeholder="Địa chỉ email"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            rules={[
+              { required: true, message: "Vui lòng nhập mật khẩu" },
+              { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự" }
+            ]}
+          >
+            <Input.Password
+              placeholder="Mật khẩu"
+              autoComplete="new-password"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="confirmPassword"
+            rules={[
+              { required: true, message: "Vui lòng xác nhận mật khẩu" }
+            ]}
+          >
+            <Input.Password
+              placeholder="Xác nhận mật khẩu"
+              autoComplete="new-password"
+            />
+          </Form.Item>
+        </div>
+
+        <div className="register-panel__submit">
+          <Button type="primary" htmlType="submit" disabled={loading}>
+            {loading ? 'Đang xử lý...' : 'Tạo tài khoản'}
+          </Button>
+        </div>
+
+        <div className="register-panel__actions">
+          <div className="register-panel__forgot">
+            <Link to="/forgot-password">Quên mật khẩu?</Link>
+          </div>
+        </div>
+      </Form>
     </div>
   );
 };
