@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import TextToSpeech from '../../components/ai-features/TextToSpeech';
 import DeepfakeVideo from '../../components/ai-features/DeepfakeVideo';
 import FakelipVideo from '../../components/ai-features/FakelipVideo';
 import CombinedAIFeature from '../../components/ai-features/CombinedAIFeature';
 import SlideToVideo from '../../components/ai-features/SlideToVideo';
-// import TextToSlide from '../../components/ai-features/TextToSlide';
+import UploadedSlideToVideo from '../../components/ai-features/UploadedSlideToVideo';
 
 const CreateContent = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('slide');
+
+  useEffect(() => {
+    // Nhận activeTab từ navigation state
+    if (location.state && location.state.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location]);
 
   return (
     <div className="create-content-page">
@@ -22,12 +31,12 @@ const CreateContent = () => {
           >
             Slide to Video
           </button>
-          {/* <button
-            className={`tab ${activeTab === 'combined' ? 'active' : ''}`}
-            onClick={() => setActiveTab('combined')}
+          <button
+            className={`tab ${activeTab === 'uploadedslide' ? 'active' : ''}`}
+            onClick={() => setActiveTab('uploadedslide')}
           >
-            Video AI Tổng Hợp
-          </button> */}
+            Uploaded Slide to Video
+          </button>
           <button
             className={`tab ${activeTab === 'tts' ? 'active' : ''}`}
             onClick={() => setActiveTab('tts')}
@@ -46,21 +55,15 @@ const CreateContent = () => {
           >
             Fakelip Video
           </button>
-          {/* <button
-            className={`tab ${activeTab === 'slides' ? 'active' : ''}`}
-            onClick={() => setActiveTab('slides')}
-          >
-            Tạo Slides
-          </button> */}
         </div>
 
         <div className="tab-content">
           {activeTab === 'slide' && <SlideToVideo />}
+          {activeTab === 'uploadedslide' && <UploadedSlideToVideo />}
           {activeTab === 'combined' && <CombinedAIFeature />}
           {activeTab === 'tts' && <TextToSpeech />}
           {activeTab === 'deepfake' && <DeepfakeVideo />}
           {activeTab === 'fakelip' && <FakelipVideo />}
-          {/* {activeTab === 'slides' && <TextToSlide />} */}
         </div>
       </div>
     </div>
