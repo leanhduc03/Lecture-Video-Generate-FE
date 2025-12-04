@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_CONFIG } from '../config/api';
 
-const API_URL = 'http://localhost:8000/api/v1';
+const API_URL = API_CONFIG.BASE_URL;
 
 export const saveVideo = async (videoUrl: string, username: string) => {
   const token = localStorage.getItem('token');

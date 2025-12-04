@@ -1,16 +1,30 @@
+import { useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { MdHistory, MdMenuBook, MdMovieCreation } from "react-icons/md";
+import { MdHistory, MdMenuBook, MdMovieCreation, MdClose } from "react-icons/md";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [showModal, setShowModal] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const handleGetStarted = () => {
-    navigate('/create-content');
+    setShowModal(true);
   };
+
   const handleViewRecentVideos = () => {
     navigate('/my-videos');
+  };
+
+  const handleChooseSlideToVideo = () => {
+    setShowModal(false);
+    navigate('/create-content', { state: { activeTab: 'slide' } });
+  };
+
+  const handleChooseUploadedSlide = () => {
+    setShowModal(false);
+    navigate('/create-content', { state: { activeTab: 'uploadedslide' } });
   };
 
   return (
@@ -21,10 +35,14 @@ const Dashboard = () => {
       </section>
       <section className="main-card">
           <div className="main-card-content">
-              {<MdMovieCreation className="icon-movie"/>}
+              <MdMovieCreation className="icon-movie"/>
               <h2 className="card-heading">Tạo Video Mới</h2>
               <p className="card-description">Tạo bài giảng video từ file PowerPoint và văn bản một cách dễ dàng.</p>
-              <button className="card-btn" onClick={handleGetStarted}>
+              <button 
+                ref={buttonRef}
+                className="card-btn" 
+                onClick={handleGetStarted}
+              >
                   Bắt đầu
               </button>
           </div>
@@ -39,7 +57,7 @@ const Dashboard = () => {
                 <h3 className="card-header-text">Video Gần Đây</h3>
             </div>
             <p className="card-description">Xem các video đã tạo gần đây để tiếp tục công việc của bạn hoặc chia sẻ chúng.</p>
-            <button className="btn-secondary">
+            <button className="btn-secondary" onClick={handleViewRecentVideos}>
                 Xem
             </button>
         </div>
@@ -56,6 +74,31 @@ const Dashboard = () => {
             </button>
         </div>
       </div>
+
+      {/* Compact Modal Popup */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowModal(false)}>
+              <MdClose />
+            </button>
+            
+            <h3 className="modal-title">Chọn phương thức</h3>
+            
+            <div className="modal-options">
+              <button className="modal-option" onClick={handleChooseSlideToVideo}>
+                <span className="option-icon">📝</span>
+                <span className="option-text">Tạo PowerPoint từ văn bản</span>
+              </button>
+              
+              <button className="modal-option" onClick={handleChooseUploadedSlide}>
+                <span className="option-icon">📤</span>
+                <span className="option-text">Upload PowerPoint</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

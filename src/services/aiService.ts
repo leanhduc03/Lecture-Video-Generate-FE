@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { API_CONFIG, buildCloudinaryUrl } from '../config/api';
 
-const API_URL = 'http://localhost:8000/api/v1';
-const NGROK_URL = 'https://byron-unswung-clarita.ngrok-free.dev';
-const DEEPFAKE_NGROK_URL = 'https://plushly-renounceable-catherina.ngrok-free.dev';
-const FAKELIP_NGROK_URL = 'https://promilitary-unconsiderablely-dia.ngrok-free.dev';
+const API_URL = API_CONFIG.BASE_URL;
+const TTS_NGROK_URL = API_CONFIG.TTS_NGROK_URL;
+const DEEPFAKE_NGROK_URL = API_CONFIG.DEEPFAKE_NGROK_URL;
+const FAKELIP_NGROK_URL = API_CONFIG.FAKELIP_NGROK_URL;
 
 export const uploadVoiceSample = async (file: File) => {
   const formData = new FormData();
@@ -22,7 +23,7 @@ export const generateSpeech = async (text: string, audioUrl: string) => {
   formData.append('text', text);
   formData.append('audio_url', audioUrl);
   
-  const response = await axios.post(`${NGROK_URL}/generate`, formData, {
+  const response = await axios.post(`${TTS_NGROK_URL}/generate`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -142,14 +143,9 @@ export const processFakelip = async (audioUrl: string, videoUrl: string): Promis
 export const uploadToCloudinary = async (file: File, fileType: string): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('upload_preset', 'ml_default'); // Thay bằng upload preset của bạn
+  formData.append('upload_preset', API_CONFIG.CLOUDINARY_UPLOAD_PRESET);
   
-  let uploadUrl = '';
-  if (fileType === 'image') {
-    uploadUrl = 'https://api.cloudinary.com/v1_1/diqes2eof/image/upload';
-  } else if (fileType === 'video') {
-    uploadUrl = 'https://api.cloudinary.com/v1_1/diqes2eof/video/upload';
-  }
+  const uploadUrl = buildCloudinaryUrl(fileType as 'image' | 'video');
   
   const response = await fetch(uploadUrl, {
     method: 'POST',
@@ -187,4 +183,39 @@ export const concatVideos = async (videoUrls: string[]) => {
     videos: videoUrls
   });
   return response.data; // { result_url }
+};
+
+export const uploadVideoToCloudinary = async (videoUrl: string): Promise<string> => {
+  try {
+    console.log('Uploading video to Cloudinary:', videoUrl);
+    
+    // Download video từ URL
+    const response = await fetch(videoUrl);
+    const blob = await response.blob();
+    
+    // Tạo FormData
+    const formData = new FormData();
+    formData.append('file', blob, 'final-video.mp4');
+    formData.append('upload_preset', API_CONFIG.CLOUDINARY_UPLOAD_PRESET);
+    formData.append('resource_type', 'video');
+    
+    // Upload lên Cloudinary
+    const uploadUrl = buildCloudinaryUrl('video');
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!uploadResponse.ok) {
+      throw new Error('Failed to upload video to Cloudinary');
+    }
+    
+    const data = await uploadResponse.json();
+    console.log('Video uploaded to Cloudinary:', data.secure_url);
+    
+    return data.secure_url;
+  } catch (error: any) {
+    console.error('Error uploading video to Cloudinary:', error);
+    throw new Error(`Cloudinary upload failed: ${error.message}`);
+  }
 };
