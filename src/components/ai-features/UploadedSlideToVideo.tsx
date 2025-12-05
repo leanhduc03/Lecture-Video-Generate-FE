@@ -37,27 +37,63 @@ const UploadedSlideToVideo = () => {
   const [editedSlideData, setEditedSlideData] = useState<SlideData[]>([]);
   const [isSavingMetadata, setIsSavingMetadata] = useState(false);
 
-  // Video and voice selection
+  // Video selection
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string>('');
-  const [selectedVoiceFile, setSelectedVoiceFile] = useState<File | null>(null);
-  const [selectedVoiceUrl, setSelectedVoiceUrl] = useState<string>('');
+
+  // Voice mode selection
+  const [voiceMode, setVoiceMode] = useState<'preset' | 'clone'>('preset');
+  
+  // Mode 1: Voice Cloning
+  const [referenceAudioFile, setReferenceAudioFile] = useState<File | null>(null);
+  const [referenceAudioUrl, setReferenceAudioUrl] = useState<string>('');
+  const [referenceText, setReferenceText] = useState<string>('');
+
+  // Mode 2: Preset Voice
+  const [gender, setGender] = useState<string>('male');
+  const [area, setArea] = useState<string>('northern');
+  const [group, setGroup] = useState<string>('news');
+  const [emotion, setEmotion] = useState<string>('neutral');
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const voiceOptions = [
-    { id: 'voice1', name: 'Giọng Nam', url: 'https://res.cloudinary.com/diqes2eof/video/upload/v1758950538/my_uploaded_audio.wav' },
-    { id: 'voice2', name: 'Giọng Nữ', url: 'https://res.cloudinary.com/dyaybnveq/video/upload/v1694318532/samples/female_voice.wav' },
-    { id: 'voice3', name: 'Giọng Trẻ Em', url: 'https://res.cloudinary.com/dyaybnveq/video/upload/v1694318532/samples/child_voice.wav' }
-  ];
-
   const videoOptions = [
     { id: 'video1', name: 'Video Giảng Viên 1', url: 'https://res.cloudinary.com/diqes2eof/video/upload/v1764513335/wplccpvu4xgorhjhdkng.mp4' },
     { id: 'video2', name: 'Video Giảng Viên 2', url: 'https://res.cloudinary.com/diqes2eof/video/upload/v1731596901/samples/teacher2.mp4' },
     { id: 'video3', name: 'Video Giảng Viên 3', url: 'https://res.cloudinary.com/diqes2eof/video/upload/v1731596901/samples/teacher3.mp4' }
+  ];
+
+  // Preset voice options
+  const genderOptions = [
+    { value: 'male', label: 'Nam' },
+    { value: 'female', label: 'Nữ' }
+  ];
+
+  const areaOptions = [
+    { value: 'northern', label: 'Miền Bắc' },
+    { value: 'central', label: 'Miền Trung' },
+    { value: 'southern', label: 'Miền Nam' }
+  ];
+
+  const groupOptions = [
+    { value: 'news', label: 'Tin tức' },
+    { value: 'story', label: 'Kể chuyện' },
+    { value: 'audiobook', label: 'Thuyết minh, đọc sách' },
+    { value: 'interview', label: 'Phỏng vấn' },
+    { value: 'review', label: 'Bình luận, đánh giá' }
+  ];
+
+  const emotionOptions = [
+    { value: 'neutral', label: 'Trung tính' },
+    { value: 'serious', label: 'Nghiêm túc' },
+    { value: 'monotone', label: 'Đơn điệu' },
+    { value: 'surprised', label: 'Ngạc nhiên' },
+    { value: 'happy', label: 'Vui vẻ' },
+    { value: 'sad', label: 'Buồn' },
+    { value: 'angry', label: 'Tức giận' }
   ];
 
   const handleUserUploadPptx = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,63 +102,63 @@ const UploadedSlideToVideo = () => {
     }
   };
 
-const uploadPptx = async () => {
-  if (!userUploadedPptx) {
-    setError('Vui lòng chọn file PPTX');
-    return;
-  }
-
-  setIsUploadingPptx(true);
-  setError(null);
-
-  try {
-    const result = await uploadPptxAndExtractSlidesImage(userUploadedPptx);
-    
-    console.log('Upload result:', result);
-    console.log('Slides data:', result.slides);
-    
-    if (result.success && result.slides) {
-      const uploadedSlides: SlideMetadata[] = result.slides.map((img: any, idx: number) => ({
-        slide_number: idx,
-        type: idx === 0 ? 'title' : 'content',
-        title: `Slide ${idx + 1}`,
-        filepath: img.image_url,
-        filename: `slide_${idx}.png`
-      }));
-
-      console.log('Updated slides with image URLs:', uploadedSlides);
-      
-      setSlides(uploadedSlides);
-      
-      const defaultMetadata: PresentationMetadata = {
-        title: userUploadedPptx.name.replace('.pptx', ''),
-        total_slides: uploadedSlides.length,
-        created_at: new Date().toISOString(),
-        slides: uploadedSlides,
-        slide_data: {
-          title: userUploadedPptx.name.replace('.pptx', ''),
-          slides: uploadedSlides.map((slide: SlideMetadata, idx: number) => ({
-            slide_number: idx,
-            title: `Slide ${idx + 1}`,
-            content: [],
-            original_content: ''
-          }))
-        }
-      };
-      
-      setMetadata(defaultMetadata);
-      enterEditMode(uploadedSlides);
-      setError(null);
-    } else {
-      throw new Error('Không thể tách slides thành images');
+  const uploadPptx = async () => {
+    if (!userUploadedPptx) {
+      setError('Vui lòng chọn file PPTX');
+      return;
     }
-  } catch (err: any) {
-    console.error('Upload PPTX error', err);
-    setError(err?.message || 'Lỗi khi upload PPTX');
-  } finally {
-    setIsUploadingPptx(false);
-  }
-};
+
+    setIsUploadingPptx(true);
+    setError(null);
+
+    try {
+      const result = await uploadPptxAndExtractSlidesImage(userUploadedPptx);
+      
+      console.log('Upload result:', result);
+      console.log('Slides data:', result.slides);
+      
+      if (result.success && result.slides) {
+        const uploadedSlides: SlideMetadata[] = result.slides.map((img: any, idx: number) => ({
+          slide_number: idx,
+          type: idx === 0 ? 'title' : 'content',
+          title: `Slide ${idx + 1}`,
+          filepath: img.image_url,
+          filename: `slide_${idx}.png`
+        }));
+
+        console.log('Updated slides with image URLs:', uploadedSlides);
+        
+        setSlides(uploadedSlides);
+        
+        const defaultMetadata: PresentationMetadata = {
+          title: userUploadedPptx.name.replace('.pptx', ''),
+          total_slides: uploadedSlides.length,
+          created_at: new Date().toISOString(),
+          slides: uploadedSlides,
+          slide_data: {
+            title: userUploadedPptx.name.replace('.pptx', ''),
+            slides: uploadedSlides.map((slide: SlideMetadata, idx: number) => ({
+              slide_number: idx,
+              title: `Slide ${idx + 1}`,
+              content: [],
+              original_content: ''
+            }))
+          }
+        };
+        
+        setMetadata(defaultMetadata);
+        enterEditMode(uploadedSlides);
+        setError(null);
+      } else {
+        throw new Error('Không thể tách slides thành images');
+      }
+    } catch (err: any) {
+      console.error('Upload PPTX error', err);
+      setError(err?.message || 'Lỗi khi upload PPTX');
+    } finally {
+      setIsUploadingPptx(false);
+    }
+  };
 
   const enterEditMode = (uploadedSlides: SlideMetadata[]) => {
     const editData: SlideData[] = [];
@@ -194,21 +230,27 @@ const uploadPptx = async () => {
     setSelectedVideoFile(null);
   };
 
-  const handleVoiceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReferenceAudioFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedVoiceFile(e.target.files[0]);
-      setSelectedVoiceUrl('');
+      setReferenceAudioFile(e.target.files[0]);
+      setReferenceAudioUrl('');
     }
   };
 
-  const handleVoicePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedVoiceUrl(e.target.value);
-    setSelectedVoiceFile(null);
+  const uploadReferenceAudio = async (): Promise<string> => {
+    if (referenceAudioFile) {
+      const result = await uploadAudioFile(referenceAudioFile);
+      if (result.success && result.audio_url) {
+        return result.audio_url;
+      } else {
+        throw new Error('Không thể upload reference audio');
+      }
+    }
+    return referenceAudioUrl;
   };
 
-  const uploadSelectedFiles = async () => {
+  const uploadSelectedVideo = async () => {
     let videoUrl = selectedVideoUrl;
-    let voiceUrl = selectedVoiceUrl;
 
     if (selectedVideoFile) {
       const result = await uploadVideoFile(selectedVideoFile);
@@ -219,16 +261,7 @@ const uploadPptx = async () => {
       }
     }
 
-    if (selectedVoiceFile) {
-      const result = await uploadAudioFile(selectedVoiceFile);
-      if (result.success && result.audio_url) {
-        voiceUrl = result.audio_url;
-      } else {
-        throw new Error('Không thể upload audio');
-      }
-    }
-
-    return { videoUrl, voiceUrl };
+    return videoUrl;
   };
 
   const processAllSlidesAndCreateVideo = async () => {
@@ -242,8 +275,13 @@ const uploadPptx = async () => {
       return;
     }
 
-    if (!selectedVoiceUrl && !selectedVoiceFile) {
-      setError('Vui lòng chọn giọng mẫu hoặc upload giọng');
+    if (voiceMode === 'clone' && !referenceAudioUrl && !referenceAudioFile) {
+      setError('Vui lòng upload file audio mẫu cho chế độ voice cloning');
+      return;
+    }
+
+    if (voiceMode === 'clone' && !referenceText.trim()) {
+      setError('Vui lòng nhập reference text cho chế độ voice cloning');
       return;
     }
     
@@ -255,7 +293,13 @@ const uploadPptx = async () => {
 
     try {
       setProcessingMessage('Đang upload files...');
-      const { videoUrl, voiceUrl } = await uploadSelectedFiles();
+      const videoUrl = await uploadSelectedVideo();
+
+      // Upload reference audio if in clone mode
+      let refAudioUrl = '';
+      if (voiceMode === 'clone') {
+        refAudioUrl = await uploadReferenceAudio();
+      }
 
       for (let i = 0; i < slides.length; i++) {
         const slide = slides[i];
@@ -270,8 +314,20 @@ const uploadPptx = async () => {
           continue;
         }
 
-        // TTS
-        const ttsResp = await generateSpeech(narrationText, voiceUrl);
+        // TTS with new VietVoice API
+        let ttsPayload: any = { text: narrationText };
+
+        if (voiceMode === 'clone') {
+          ttsPayload.reference_audio_url = refAudioUrl;
+          ttsPayload.reference_text = referenceText;
+        } else {
+          ttsPayload.gender = gender;
+          ttsPayload.area = area;
+          ttsPayload.group = group;
+          ttsPayload.emotion = emotion;
+        }
+
+        const ttsResp = await generateSpeech(narrationText, ttsPayload);
         if (!ttsResp || !ttsResp.audio_file_url) {
           throw new Error(`Không tạo được audio cho slide ${slide.slide_number}`);
         }
@@ -329,8 +385,14 @@ const uploadPptx = async () => {
     setEditedSlideData([]);
     setSelectedVideoFile(null);
     setSelectedVideoUrl(videoOptions[0].url);
-    setSelectedVoiceFile(null);
-    setSelectedVoiceUrl(voiceOptions[0].url);
+    setVoiceMode('preset');
+    setReferenceAudioFile(null);
+    setReferenceAudioUrl('');
+    setReferenceText('');
+    setGender('male');
+    setArea('northern');
+    setGroup('news');
+    setEmotion('neutral');
     setFinalVideoUrl(null);
     setError(null);
     setProcessingMessage('');
@@ -372,7 +434,6 @@ const uploadPptx = async () => {
 
   useEffect(() => {
     setSelectedVideoUrl(videoOptions[0].url);
-    setSelectedVoiceUrl(voiceOptions[0].url);
   }, []);
 
   // EDIT MODE
@@ -605,6 +666,7 @@ const uploadPptx = async () => {
             </button>
           </div>
           
+          {/* Video Selection */}
           <div style={{marginBottom: 20}}>
             <h4>Chọn Video Giảng Viên:</h4>
             <div>
@@ -654,66 +716,169 @@ const uploadPptx = async () => {
             )}
           </div>
 
-          <div style={{marginBottom: 20}}>
-            <h4>Chọn Giọng Thuyết Trình:</h4>
-            <div>
+          {/* Voice Mode Selection */}
+          <div style={{marginBottom: 20, padding: 20, border: '2px solid #e0e0e0', borderRadius: 8}}>
+            <h4>Chọn Phương Thức Tạo Giọng:</h4>
+            <div style={{marginBottom: 15}}>
+              <label style={{marginRight: 20}}>
+                <input 
+                  type="radio" 
+                  name="voiceMode" 
+                  value="preset"
+                  checked={voiceMode === 'preset'}
+                  onChange={(e) => setVoiceMode(e.target.value as 'preset' | 'clone')}
+                />
+                Sử dụng giọng có sẵn
+              </label>
               <label>
                 <input 
                   type="radio" 
-                  name="voiceChoice" 
-                  checked={!selectedVoiceFile}
-                  onChange={() => setSelectedVoiceFile(null)}
+                  name="voiceMode" 
+                  value="clone"
+                  checked={voiceMode === 'clone'}
+                  onChange={(e) => setVoiceMode(e.target.value as 'preset' | 'clone')}
                 />
-                Sử dụng giọng mẫu:
-                <select 
-                  value={selectedVoiceUrl} 
-                  onChange={handleVoicePresetChange}
-                  disabled={!!selectedVoiceFile}
-                  style={{marginLeft: 10}}
-                >
-                  {voiceOptions.map(option => (
-                    <option key={option.id} value={option.url}>{option.name}</option>
-                  ))}
-                </select>
+                Clone giọng từ mẫu
               </label>
             </div>
-            <div style={{marginTop: 10}}>
-              <label>
-                <input 
-                  type="radio" 
-                  name="voiceChoice" 
-                  checked={!!selectedVoiceFile}
-                  onChange={() => {}}
-                />
-                Upload giọng tùy chỉnh:
-                <input 
-                  type="file" 
-                  accept="audio/*" 
-                  onChange={handleVoiceFileChange}
-                  style={{marginLeft: 10}}
-                />
-              </label>
-            </div>
-            {(selectedVoiceUrl || selectedVoiceFile) && (
-              <audio 
-                src={selectedVoiceUrl || (selectedVoiceFile ? URL.createObjectURL(selectedVoiceFile) : '')} 
-                controls 
-                style={{width: '100%', maxWidth: 400, marginTop: 10}}
-              />
+
+            {/* Mode 2: Preset Voice */}
+            {voiceMode === 'preset' && (
+              <div style={{padding: 15, background: '#f9f9f9', borderRadius: 5}}>
+                <h5>Cấu hình giọng nói:</h5>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15}}>
+                  <div>
+                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                      Giới tính:
+                    </label>
+                    <select 
+                      value={gender} 
+                      onChange={(e) => setGender(e.target.value)}
+                      style={{width: '100%', padding: 8}}
+                    >
+                      {genderOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                      Vùng miền:
+                    </label>
+                    <select 
+                      value={area} 
+                      onChange={(e) => setArea(e.target.value)}
+                      style={{width: '100%', padding: 8}}
+                    >
+                      {areaOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                      Nhóm giọng:
+                    </label>
+                    <select 
+                      value={group} 
+                      onChange={(e) => setGroup(e.target.value)}
+                      style={{width: '100%', padding: 8}}
+                    >
+                      {groupOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                      Cảm xúc:
+                    </label>
+                    <select 
+                      value={emotion} 
+                      onChange={(e) => setEmotion(e.target.value)}
+                      style={{width: '100%', padding: 8}}
+                    >
+                      {emotionOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Mode 1: Voice Cloning */}
+            {voiceMode === 'clone' && (
+              <div style={{padding: 15, background: '#fff3cd', borderRadius: 5}}>
+                <h5>Clone giọng từ file mẫu:</h5>
+                <div style={{marginBottom: 15}}>
+                  <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                    Upload file audio mẫu:
+                  </label>
+                  <input 
+                    type="file" 
+                    accept="audio/*" 
+                    onChange={handleReferenceAudioFileChange}
+                  />
+                  {referenceAudioFile && (
+                    <div style={{
+                      marginTop: 10,
+                      padding: 10,
+                      background: '#e8f5e9',
+                      borderRadius: 4,
+                      color: '#2e7d32'
+                    }}>
+                      ✓ Đã chọn: {referenceAudioFile.name}
+                    </div>
+                  )}
+                  {(referenceAudioUrl || referenceAudioFile) && (
+                    <audio 
+                      src={referenceAudioUrl || (referenceAudioFile ? URL.createObjectURL(referenceAudioFile) : '')} 
+                      controls 
+                      style={{width: '100%', marginTop: 10}}
+                    />
+                  )}
+                </div>
+                
+                <div>
+                  <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                    Reference Text (nội dung của audio mẫu):
+                  </label>
+                  <textarea
+                    value={referenceText}
+                    onChange={(e) => setReferenceText(e.target.value)}
+                    placeholder="Nhập nội dung tương ứng với file audio mẫu..."
+                    rows={4}
+                    style={{
+                      width: '100%',
+                      padding: 10,
+                      border: '1px solid #ddd',
+                      borderRadius: 4,
+                      fontFamily: 'inherit'
+                    }}
+                  />
+                  <div style={{fontSize: '13px', color: '#666', marginTop: 5}}>
+                    Reference text giúp mô hình hiểu rõ hơn về giọng nói trong file mẫu
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
           <div style={{marginTop: 20}}>
             <button 
               onClick={processAllSlidesAndCreateVideo} 
-              disabled={isProcessing || (!selectedVideoUrl && !selectedVideoFile) || (!selectedVoiceUrl && !selectedVoiceFile)}
+              disabled={isProcessing || (!selectedVideoUrl && !selectedVideoFile)}
               style={{
-                background: (isProcessing || (!selectedVideoUrl && !selectedVideoFile) || (!selectedVoiceUrl && !selectedVoiceFile)) ? '#ccc' : '#28a745',
+                background: (isProcessing || (!selectedVideoUrl && !selectedVideoFile)) ? '#ccc' : '#28a745',
                 color: 'white',
                 padding: '10px 20px',
                 border: 'none',
                 borderRadius: 4,
-                cursor: (isProcessing || (!selectedVideoUrl && !selectedVideoFile) || (!selectedVoiceUrl && !selectedVoiceFile)) ? 'not-allowed' : 'pointer',
+                cursor: (isProcessing || (!selectedVideoUrl && !selectedVideoFile)) ? 'not-allowed' : 'pointer',
                 fontWeight: 'bold'
               }}
             >
