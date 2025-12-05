@@ -18,17 +18,30 @@ export const uploadVoiceSample = async (file: File) => {
   return response.data;
 };
 
-export const generateSpeech = async (text: string, audioUrl: string) => {
-  const formData = new FormData();
-  formData.append('text', text);
-  formData.append('audio_url', audioUrl);
-  
-  const response = await axios.post(`${TTS_NGROK_URL}/generate`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-  return response.data;
+export const generateSpeech = async (text: string, payload: any) => {
+  try {
+    console.log('Gửi yêu cầu TTS với payload:', payload);
+    
+    const response = await axios.post(`${TTS_NGROK_URL}/vietvoice`, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    console.log('TTS API response:', response.data);
+    
+    if (response.data && response.data.result_url) {
+      return { 
+        audio_file_url: response.data.result_url,
+        message: response.data.message 
+      };
+    } else {
+      throw new Error('Không nhận được URL audio từ API');
+    }
+  } catch (error: any) {
+    console.error('Error in generateSpeech:', error);
+    throw new Error(`TTS failed: ${error.message}`);
+  }
 };
 
 // Hàm upload ảnh thông qua backend
