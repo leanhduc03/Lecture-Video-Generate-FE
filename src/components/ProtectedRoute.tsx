@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import PageLoading from '../pages/common/Loading';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -11,7 +12,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
   const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) {
-    return <div>Đang tải...</div>;
+    return <PageLoading/>;
   }
 
   if (!isAuthenticated) {

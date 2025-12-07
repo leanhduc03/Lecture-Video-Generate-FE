@@ -35,12 +35,13 @@ import Unauthorized from './pages/Unauthorized';
 
 import './App.css';
 import './styles/create-content.css';
+import PageLoading from './pages/common/Loading';
 
 function App() {
   const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading">Đang tải...</div>;
+    return <PageLoading/>;
   }
 
   return (
