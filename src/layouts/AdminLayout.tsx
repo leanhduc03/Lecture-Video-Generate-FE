@@ -1,71 +1,31 @@
-import { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { ReactNode } from "react";
+import { Layout } from "antd";
+import AdminHeader from "./AdminHeader";
+import AdminSidebar from "./AdminSidebar";
+
+const { Content, Footer } = Layout;
 
 interface AdminLayoutProps {
   children: ReactNode;
 }
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
-  const { user, logout } = useAuth();
-
   return (
-    <div className="admin-layout">
-      <header className="header">
-        <div className="container">
-          <div className="logo">
-            <Link to="/admin/dashboard">LecVidGen Admin</Link>
-          </div>
-          
-          <div className="user-menu">
-            <div className="user-info">
-              <span>Admin: {user?.username}</span>
-            </div>
-            <div className="dropdown">
-              <ul>
-                <li>
-                  <Link to="/admin/profile">Hồ sơ</Link>
-                </li>
-                <li>
-                  <button onClick={logout}>Đăng xuất</button>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </header>
-      
-      <div className="admin-container">
-        <aside className="sidebar">
-          <nav className="admin-nav">
-            <ul>
-              <li>
-                <Link to="/admin/dashboard">Tổng quan</Link>
-              </li>
-              <li>
-                <Link to="/admin/users">Quản lý người dùng</Link>
-              </li>
-              <li>
-                <Link to="/admin/videos">Quản lý video</Link>
-              </li>
-              {/* <li>
-                <Link to="/admin/settings">Cài đặt hệ thống</Link>
-              </li> */}
-            </ul>
-          </nav>
-        </aside>
-        
-        <main className="admin-content">
-          {children}
-        </main>
-      </div>
-      
-      <footer className="footer">
-        <div className="container">
-          <p>&copy; 2025 LecVidGen Admin. Bản quyền thuộc về DATN</p>
-        </div>
-      </footer>
-    </div>
+    <Layout className="min-h-screen bg-background-light text-text-light">
+      <AdminHeader />
+      <Layout className="pt-16">
+        <AdminSidebar />
+        <Layout className="ml-64">
+          <Content className="flex-1 overflow-y-auto p-8 pt-8">
+            <div className="max-w-7xl mx-auto">{children}</div>
+          </Content>
+
+          <Footer className="text-center text-sm text-text-muted-light bg-transparent">
+            <p>© 2025 LecVidGen Admin. Bản quyền thuộc về DATN</p>
+          </Footer>
+        </Layout>
+      </Layout>
+    </Layout>
   );
 };
 
