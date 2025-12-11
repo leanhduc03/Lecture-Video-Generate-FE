@@ -3,6 +3,7 @@ import { Layout, Menu } from "antd";
 import {
   TeamOutlined,
   VideoCameraOutlined,
+  PlayCircleOutlined
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -15,6 +16,7 @@ const AdminSidebar: FC = () => {
   const selectedKey = (() => {
     if (location.pathname.startsWith("/admin/users")) return "users";
     if (location.pathname.startsWith("/admin/videos")) return "videos";
+    if (location.pathname.startsWith("/admin/sample-videos")) return "sample-videos";
     return "dashboard";
   })();
 
@@ -32,6 +34,7 @@ const AdminSidebar: FC = () => {
           onClick={({ key }) => {
             if (key === "users") navigate("/admin/users");
             if (key === "videos") navigate("/admin/videos");
+            if (key === "sample-videos") navigate("/admin/sample-videos");
           }}
           className="border-0 bg-transparent"
           items={[
@@ -45,6 +48,11 @@ const AdminSidebar: FC = () => {
               icon: <VideoCameraOutlined />,
               label: "Quản lý video",
             },
+            {
+              key: "sample-videos",
+              icon: <PlayCircleOutlined />,
+              label: "Quản lý video mẫu",
+            }
           ]}
         />
       </div>

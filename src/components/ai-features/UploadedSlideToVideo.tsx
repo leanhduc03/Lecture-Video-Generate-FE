@@ -4,7 +4,7 @@ import '../../styles/combined-ai-feature.css';
 import {
   uploadVideoForDeepfake,
   uploadImageForDeepfake,
-  generateSpeech, 
+  generateSpeech,
   processFakelip,
   combineSlideImageAndVideo,
   concatVideos,
@@ -13,6 +13,7 @@ import {
 import { saveVideo } from '../../services/videoService';
 import {
   uploadPptxAndExtractSlidesImage,
+  extractPptxText,
   saveSlideMetadata,
   uploadAudioFile,
   uploadVideoFile,
@@ -23,10 +24,11 @@ import {
 
 const UploadedSlideToVideo = () => {
   const { user } = useAuth();
-  
+
   // Presentation metadata
   const [metadata, setMetadata] = useState<PresentationMetadata | null>(null);
   const [slides, setSlides] = useState<SlideMetadata[]>([]);
+  const [savedSlideData, setSavedSlideData] = useState<SlideData[]>([]);
 
   // User uploaded PPTX
   const [userUploadedPptx, setUserUploadedPptx] = useState<File | null>(null);
@@ -43,7 +45,7 @@ const UploadedSlideToVideo = () => {
 
   // Voice mode selection
   const [voiceMode, setVoiceMode] = useState<'preset' | 'clone'>('preset');
-  
+
   // Mode 1: Voice Cloning
   const [referenceAudioFile, setReferenceAudioFile] = useState<File | null>(null);
   const [referenceAudioUrl, setReferenceAudioUrl] = useState<string>('');
@@ -112,24 +114,33 @@ const UploadedSlideToVideo = () => {
     setError(null);
 
     try {
-      const result = await uploadPptxAndExtractSlidesImage(userUploadedPptx);
+      // 1. Extract images
+      console.log('📸 Extracting images...');
+      const imageResult = await uploadPptxAndExtractSlidesImage(userUploadedPptx);
+      console.log('✅ Image result:', imageResult);
       
-      console.log('Upload result:', result);
-      console.log('Slides data:', result.slides);
-      
-      if (result.success && result.slides) {
-        const uploadedSlides: SlideMetadata[] = result.slides.map((img: any, idx: number) => ({
-          slide_number: idx,
-          type: idx === 0 ? 'title' : 'content',
-          title: `Slide ${idx + 1}`,
-          filepath: img.image_url,
-          filename: `slide_${idx}.png`
-        }));
+      // 2. Extract text content
+      console.log('📝 Extracting text...');
+      const textResult = await extractPptxText(userUploadedPptx);
+      console.log('✅ Text result:', textResult);
 
-        console.log('Updated slides with image URLs:', uploadedSlides);
-        
+      if (imageResult.success && imageResult.slides) {
+        const uploadedSlides: SlideMetadata[] = imageResult.slides.map((img: any, idx: number) => {
+          const slideText = textResult.slides_text?.find(s => s.slide_number === idx);
+          
+          return {
+            slide_number: idx,
+            type: idx === 0 ? 'title' : 'content',
+            title: slideText?.title || `Slide ${idx + 1}`,
+            filepath: img.image_url,
+            filename: `slide_${idx}.png`
+          };
+        });
+
+        console.log('📋 Uploaded slides:', uploadedSlides);
+
         setSlides(uploadedSlides);
-        
+
         const defaultMetadata: PresentationMetadata = {
           title: userUploadedPptx.name.replace('.pptx', ''),
           total_slides: uploadedSlides.length,
@@ -137,17 +148,26 @@ const UploadedSlideToVideo = () => {
           slides: uploadedSlides,
           slide_data: {
             title: userUploadedPptx.name.replace('.pptx', ''),
-            slides: uploadedSlides.map((slide: SlideMetadata, idx: number) => ({
-              slide_number: idx,
-              title: `Slide ${idx + 1}`,
-              content: [],
-              original_content: ''
-            }))
+            slides: uploadedSlides.map((slide: SlideMetadata, idx: number) => {
+              const slideText = textResult.slides_text?.find(s => s.slide_number === idx);
+              
+              return {
+                slide_number: idx,
+                title: slide.title || `Slide ${idx + 1}`,
+                content: [],
+                original_content: slideText?.content || ''
+              };
+            })
           }
         };
-        
+
+        console.log('💾 Metadata with content:', defaultMetadata);
+
         setMetadata(defaultMetadata);
-        enterEditMode(uploadedSlides);
+        
+        // ⭐ Truyền metadata vào function thay vì đọc từ state
+        enterEditModeWithMetadata(uploadedSlides, defaultMetadata);
+        
         setError(null);
       } else {
         throw new Error('Không thể tách slides thành images');
@@ -160,20 +180,33 @@ const UploadedSlideToVideo = () => {
     }
   };
 
-  const enterEditMode = (uploadedSlides: SlideMetadata[]) => {
-    const editData: SlideData[] = [];
+  // ⭐ Function mới nhận metadata làm parameter
+  const enterEditModeWithMetadata = (uploadedSlides: SlideMetadata[], metadataToUse: PresentationMetadata) => {
+    const editData: SlideData[] = uploadedSlides.map((slide, idx) => {
+      const slideData = metadataToUse.slide_data.slides[idx];
+      
+      console.log(`Slide ${idx} content:`, slideData?.original_content); // Debug
+      
+      return {
+        slide_number: idx,
+        title: slide.title || `Slide ${idx + 1}`,
+        content: slideData?.content || [],
+        original_content: slideData?.original_content || ''
+      };
+    });
     
-    for (let i = 0; i < uploadedSlides.length; i++) {
-      editData.push({
-        slide_number: i,
-        title: `Slide ${i + 1}`,
-        content: [],
-        original_content: ''
-      });
-    }
+    console.log('✅ Final edit data:', editData);
     
     setEditedSlideData(editData);
+    setSavedSlideData([...editData]);
     setEditMode(true);
+  };
+
+  // Giữ lại function cũ cho nút "Nhập script thuyết trình"
+  const enterEditMode = (uploadedSlides: SlideMetadata[]) => {
+    if (metadata) {
+      enterEditModeWithMetadata(uploadedSlides, metadata);
+    }
   };
 
   const updateOriginalContent = (slideIndex: number, value: string) => {
@@ -202,9 +235,10 @@ const UploadedSlideToVideo = () => {
       };
 
       const result = await saveSlideMetadata(updatedMetadata);
-      
+
       if (result.success) {
         setMetadata(prev => prev ? { ...prev, slide_data: updatedMetadata } : null);
+        setSavedSlideData([...editedSlideData]);
         setEditMode(false);
         setError(null);
       } else {
@@ -216,6 +250,11 @@ const UploadedSlideToVideo = () => {
     } finally {
       setIsSavingMetadata(false);
     }
+  };
+
+    const handleCancelEdit = () => {
+    setEditedSlideData([...savedSlideData]); //  Khôi phục content đã lưu
+    setEditMode(false);
   };
 
   const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -284,7 +323,7 @@ const UploadedSlideToVideo = () => {
       setError('Vui lòng nhập reference text cho chế độ voice cloning');
       return;
     }
-    
+
     setError(null);
     setIsProcessing(true);
 
@@ -304,11 +343,11 @@ const UploadedSlideToVideo = () => {
       for (let i = 0; i < slides.length; i++) {
         const slide = slides[i];
         const slideData = slideDataList.find(sd => sd.slide_number === slide.slide_number);
-        
-        setProcessingMessage(`Xử lý slide ${i+1}/${slides.length}: ${slideData?.title || 'Untitled'}...`);
-        
+
+        setProcessingMessage(`Xử lý slide ${i + 1}/${slides.length}: ${slideData?.title || 'Untitled'}...`);
+
         const narrationText = slideData?.original_content || '';
-        
+
         if (!narrationText) {
           console.warn(`Slide ${slide.slide_number} không có script, bỏ qua`);
           continue;
@@ -441,35 +480,35 @@ const UploadedSlideToVideo = () => {
     return (
       <div className="combined-ai-feature">
         <h2>Nhập nội dung thuyết trình cho từng slide</h2>
-        
+
         {error && <div className="error-message">{error}</div>}
-        
+
         <div className="edit-slides-container">
           {editedSlideData.map((slideData, index) => (
             <div key={index} className="slide-edit-section" style={{
-              marginBottom: 30, 
-              padding: 20, 
-              border: '2px solid #e0e0e0', 
+              marginBottom: 30,
+              padding: 20,
+              border: '2px solid #e0e0e0',
               borderRadius: 8,
               background: '#f9f9f9'
             }}>
-              <div style={{display: 'flex', gap: 20, alignItems: 'flex-start'}}>
+              <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
                 {/* Slide Image Gốc */}
                 {slides[index] && (
-                  <div style={{flex: '0 0 400px'}}>
-                    <img 
-                      src={slides[index].filepath} 
-                      alt={`Slide ${index + 1}`} 
+                  <div style={{ flex: '0 0 400px' }}>
+                    <img
+                      src={slides[index].filepath}
+                      alt={`Slide ${index + 1}`}
                       style={{
-                        width: '100%', 
-                        border: '2px solid #ccc', 
+                        width: '100%',
+                        border: '2px solid #ccc',
                         borderRadius: 8,
                         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                       }}
                     />
                     <div style={{
-                      marginTop: 10, 
-                      textAlign: 'center', 
+                      marginTop: 10,
+                      textAlign: 'center',
                       fontWeight: 'bold',
                       color: '#333',
                       fontSize: '14px'
@@ -478,12 +517,12 @@ const UploadedSlideToVideo = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Script Editor */}
-                <div style={{flex: 1}}>
+                <div style={{ flex: 1 }}>
                   <label style={{
-                    display: 'block', 
-                    marginBottom: 8, 
+                    display: 'block',
+                    marginBottom: 8,
                     fontWeight: 'bold',
                     fontSize: '16px',
                     color: '#333'
@@ -494,14 +533,12 @@ const UploadedSlideToVideo = () => {
                     value={slideData.original_content}
                     onChange={(e) => {
                       const text = e.target.value;
-                      if (text.length <= 250) {
-                        updateOriginalContent(index, text);
-                      }
+                      updateOriginalContent(index, text);
                     }}
                     placeholder="Nhập nội dung bạn muốn thuyết trình cho slide này (tối đa 250 ký tự)..."
                     rows={8}
                     style={{
-                      width: '100%', 
+                      width: '100%',
                       padding: '12px',
                       fontSize: '14px',
                       border: '1px solid #ddd',
@@ -512,23 +549,23 @@ const UploadedSlideToVideo = () => {
                   />
                   <div style={{
                     marginTop: 8,
-                    fontSize: '13px', 
-                    color: slideData.original_content.length > 240 ? '#ff6b6b' : '#666',
-                    fontWeight: slideData.original_content.length > 240 ? 'bold' : 'normal'
+                    fontSize: '13px',
+                    color:  '#666',
+                    fontWeight: 'normal'
                   }}>
-                    {slideData.original_content.length}/250 ký tự
-                    {slideData.original_content.length > 240 && ' - Gần đạt giới hạn!'}
+                    {slideData.original_content.length}/1000 ký tự
+                    {/* {slideData.original_content.length > 240 && ' - Gần đạt giới hạn!'} */}
                   </div>
                 </div>
               </div>
             </div>
           ))}
-          
-          <div style={{marginTop: 30, textAlign: 'center', padding: '20px 0', borderTop: '2px solid #ddd'}}>
-            <button 
-              onClick={() => setEditMode(false)}
+
+          <div style={{ marginTop: 30, textAlign: 'center', padding: '20px 0', borderTop: '2px solid #ddd' }}>
+            <button
+              onClick={handleCancelEdit}
               style={{
-                marginRight: 15, 
+                marginRight: 15,
                 padding: '12px 30px',
                 fontSize: '16px',
                 background: '#6c757d',
@@ -540,13 +577,13 @@ const UploadedSlideToVideo = () => {
             >
               Hủy
             </button>
-            <button 
+            <button
               onClick={handleSaveMetadata}
               disabled={isSavingMetadata}
               style={{
                 padding: '12px 30px',
                 fontSize: '16px',
-                background: isSavingMetadata ? '#ccc' : '#28a745', 
+                background: isSavingMetadata ? '#ccc' : '#28a745',
                 color: 'white',
                 border: 'none',
                 borderRadius: 4,
@@ -579,30 +616,30 @@ const UploadedSlideToVideo = () => {
             textAlign: 'center',
             background: '#f9f9f9'
           }}>
-            <div style={{marginBottom: 15}}>
-              <svg 
-                width="64" 
-                height="64" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
+            <div style={{ marginBottom: 15 }}>
+              <svg
+                width="64"
+                height="64"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
                 strokeWidth="2"
-                style={{color: '#666'}}
+                style={{ color: '#666' }}
               >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
               </svg>
             </div>
-            
-            <input 
-              type="file" 
-              accept=".pptx" 
+
+            <input
+              type="file"
+              accept=".pptx"
               onChange={handleUserUploadPptx}
-              style={{marginBottom: 15}}
+              style={{ marginBottom: 15 }}
               id="pptx-upload"
             />
-            
+
             {userUploadedPptx && (
               <div style={{
                 marginTop: 15,
@@ -614,9 +651,9 @@ const UploadedSlideToVideo = () => {
                 ✓ Đã chọn: {userUploadedPptx.name}
               </div>
             )}
-            
-            <button 
-              onClick={uploadPptx} 
+
+            <button
+              onClick={uploadPptx}
               disabled={!userUploadedPptx || isUploadingPptx}
               style={{
                 marginTop: 15,
@@ -640,7 +677,7 @@ const UploadedSlideToVideo = () => {
       {metadata && !editMode && (
         <section className="step-content">
           <h3>Bước 2: Chọn video và giọng thuyết trình</h3>
-          
+
           <div style={{
             padding: 15,
             background: '#e3f2fd',
@@ -650,7 +687,7 @@ const UploadedSlideToVideo = () => {
             <strong>✓ Đã upload thành công:</strong>
             <div>Tên file: {metadata.title}</div>
             <div>Tổng số slides: {metadata.total_slides}</div>
-            <button 
+            <button
               onClick={() => enterEditMode(slides)}
               style={{
                 marginTop: 10,
@@ -665,24 +702,24 @@ const UploadedSlideToVideo = () => {
               ✏️ Nhập script thuyết trình
             </button>
           </div>
-          
+
           {/* Video Selection */}
-          <div style={{marginBottom: 20}}>
+          <div style={{ marginBottom: 20 }}>
             <h4>Chọn Video Giảng Viên:</h4>
             <div>
               <label>
-                <input 
-                  type="radio" 
-                  name="videoChoice" 
+                <input
+                  type="radio"
+                  name="videoChoice"
                   checked={!selectedVideoFile}
                   onChange={() => setSelectedVideoFile(null)}
                 />
                 Sử dụng video mẫu:
-                <select 
-                  value={selectedVideoUrl} 
+                <select
+                  value={selectedVideoUrl}
                   onChange={handleVideoPresetChange}
                   disabled={!!selectedVideoFile}
-                  style={{marginLeft: 10}}
+                  style={{ marginLeft: 10 }}
                 >
                   {videoOptions.map(option => (
                     <option key={option.id} value={option.url}>{option.name}</option>
@@ -690,40 +727,40 @@ const UploadedSlideToVideo = () => {
                 </select>
               </label>
             </div>
-            <div style={{marginTop: 10}}>
+            <div style={{ marginTop: 10 }}>
               <label>
-                <input 
-                  type="radio" 
-                  name="videoChoice" 
+                <input
+                  type="radio"
+                  name="videoChoice"
                   checked={!!selectedVideoFile}
-                  onChange={() => {}}
+                  onChange={() => { }}
                 />
                 Upload video tùy chỉnh:
-                <input 
-                  type="file" 
-                  accept="video/*" 
+                <input
+                  type="file"
+                  accept="video/*"
                   onChange={handleVideoFileChange}
-                  style={{marginLeft: 10}}
+                  style={{ marginLeft: 10 }}
                 />
               </label>
             </div>
             {(selectedVideoUrl || selectedVideoFile) && (
-              <video 
-                src={selectedVideoUrl || (selectedVideoFile ? URL.createObjectURL(selectedVideoFile) : '')} 
-                controls 
-                style={{width: '100%', maxWidth: 400, marginTop: 10}}
+              <video
+                src={selectedVideoUrl || (selectedVideoFile ? URL.createObjectURL(selectedVideoFile) : '')}
+                controls
+                style={{ width: '100%', maxWidth: 400, marginTop: 10 }}
               />
             )}
           </div>
 
           {/* Voice Mode Selection */}
-          <div style={{marginBottom: 20, padding: 20, border: '2px solid #e0e0e0', borderRadius: 8}}>
+          <div style={{ marginBottom: 20, padding: 20, border: '2px solid #e0e0e0', borderRadius: 8 }}>
             <h4>Chọn Phương Thức Tạo Giọng:</h4>
-            <div style={{marginBottom: 15}}>
-              <label style={{marginRight: 20}}>
-                <input 
-                  type="radio" 
-                  name="voiceMode" 
+            <div style={{ marginBottom: 15 }}>
+              <label style={{ marginRight: 20 }}>
+                <input
+                  type="radio"
+                  name="voiceMode"
                   value="preset"
                   checked={voiceMode === 'preset'}
                   onChange={(e) => setVoiceMode(e.target.value as 'preset' | 'clone')}
@@ -731,9 +768,9 @@ const UploadedSlideToVideo = () => {
                 Sử dụng giọng có sẵn
               </label>
               <label>
-                <input 
-                  type="radio" 
-                  name="voiceMode" 
+                <input
+                  type="radio"
+                  name="voiceMode"
                   value="clone"
                   checked={voiceMode === 'clone'}
                   onChange={(e) => setVoiceMode(e.target.value as 'preset' | 'clone')}
@@ -744,62 +781,62 @@ const UploadedSlideToVideo = () => {
 
             {/* Mode 2: Preset Voice */}
             {voiceMode === 'preset' && (
-              <div style={{padding: 15, background: '#f9f9f9', borderRadius: 5}}>
+              <div style={{ padding: 15, background: '#f9f9f9', borderRadius: 5 }}>
                 <h5>Cấu hình giọng nói:</h5>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15}}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
                   <div>
-                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                    <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
                       Giới tính:
                     </label>
-                    <select 
-                      value={gender} 
+                    <select
+                      value={gender}
                       onChange={(e) => setGender(e.target.value)}
-                      style={{width: '100%', padding: 8}}
+                      style={{ width: '100%', padding: 8 }}
                     >
                       {genderOptions.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
                   </div>
-                  
+
                   <div>
-                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                    <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
                       Vùng miền:
                     </label>
-                    <select 
-                      value={area} 
+                    <select
+                      value={area}
                       onChange={(e) => setArea(e.target.value)}
-                      style={{width: '100%', padding: 8}}
+                      style={{ width: '100%', padding: 8 }}
                     >
                       {areaOptions.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
                   </div>
-                  
+
                   <div>
-                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                    <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
                       Nhóm giọng:
                     </label>
-                    <select 
-                      value={group} 
+                    <select
+                      value={group}
                       onChange={(e) => setGroup(e.target.value)}
-                      style={{width: '100%', padding: 8}}
+                      style={{ width: '100%', padding: 8 }}
                     >
                       {groupOptions.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
                   </div>
-                  
+
                   <div>
-                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                    <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
                       Cảm xúc:
                     </label>
-                    <select 
-                      value={emotion} 
+                    <select
+                      value={emotion}
                       onChange={(e) => setEmotion(e.target.value)}
-                      style={{width: '100%', padding: 8}}
+                      style={{ width: '100%', padding: 8 }}
                     >
                       {emotionOptions.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -812,15 +849,15 @@ const UploadedSlideToVideo = () => {
 
             {/* Mode 1: Voice Cloning */}
             {voiceMode === 'clone' && (
-              <div style={{padding: 15, background: '#fff3cd', borderRadius: 5}}>
+              <div style={{ padding: 15, background: '#fff3cd', borderRadius: 5 }}>
                 <h5>Clone giọng từ file mẫu:</h5>
-                <div style={{marginBottom: 15}}>
-                  <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                <div style={{ marginBottom: 15 }}>
+                  <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
                     Upload file audio mẫu:
                   </label>
-                  <input 
-                    type="file" 
-                    accept="audio/*" 
+                  <input
+                    type="file"
+                    accept="audio/*"
                     onChange={handleReferenceAudioFileChange}
                   />
                   {referenceAudioFile && (
@@ -835,16 +872,16 @@ const UploadedSlideToVideo = () => {
                     </div>
                   )}
                   {(referenceAudioUrl || referenceAudioFile) && (
-                    <audio 
-                      src={referenceAudioUrl || (referenceAudioFile ? URL.createObjectURL(referenceAudioFile) : '')} 
-                      controls 
-                      style={{width: '100%', marginTop: 10}}
+                    <audio
+                      src={referenceAudioUrl || (referenceAudioFile ? URL.createObjectURL(referenceAudioFile) : '')}
+                      controls
+                      style={{ width: '100%', marginTop: 10 }}
                     />
                   )}
                 </div>
-                
+
                 <div>
-                  <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
+                  <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
                     Reference Text (nội dung của audio mẫu):
                   </label>
                   <textarea
@@ -860,7 +897,7 @@ const UploadedSlideToVideo = () => {
                       fontFamily: 'inherit'
                     }}
                   />
-                  <div style={{fontSize: '13px', color: '#666', marginTop: 5}}>
+                  <div style={{ fontSize: '13px', color: '#666', marginTop: 5 }}>
                     Reference text giúp mô hình hiểu rõ hơn về giọng nói trong file mẫu
                   </div>
                 </div>
@@ -868,9 +905,9 @@ const UploadedSlideToVideo = () => {
             )}
           </div>
 
-          <div style={{marginTop: 20}}>
-            <button 
-              onClick={processAllSlidesAndCreateVideo} 
+          <div style={{ marginTop: 20 }}>
+            <button
+              onClick={processAllSlidesAndCreateVideo}
               disabled={isProcessing || (!selectedVideoUrl && !selectedVideoFile)}
               style={{
                 background: (isProcessing || (!selectedVideoUrl && !selectedVideoFile)) ? '#ccc' : '#28a745',
@@ -884,8 +921,8 @@ const UploadedSlideToVideo = () => {
             >
               {isProcessing ? '⏳ Đang xử lý...' : '🎬 Tạo Video Thuyết Trình'}
             </button>
-            <button 
-              onClick={handleReset} 
+            <button
+              onClick={handleReset}
               style={{
                 marginLeft: 10,
                 padding: '10px 20px',
@@ -919,10 +956,10 @@ const UploadedSlideToVideo = () => {
       {finalVideoUrl && (
         <section className="step-content result-container">
           <h3>✓ Video thuyết trình hoàn chỉnh</h3>
-          <video src={finalVideoUrl} controls style={{width:'100%', maxWidth: 800}} />
-          <div style={{marginTop: 15}}>
-            <button 
-              onClick={handleDownload} 
+          <video src={finalVideoUrl} controls style={{ width: '100%', maxWidth: 800 }} />
+          <div style={{ marginTop: 15 }}>
+            <button
+              onClick={handleDownload}
               className="download-button"
               style={{
                 padding: '12px 30px',

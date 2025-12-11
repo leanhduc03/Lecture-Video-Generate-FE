@@ -36,12 +36,13 @@ import Unauthorized from './pages/Unauthorized';
 import './App.css';
 import './styles/create-content.css';
 import PageLoading from './pages/common/Loading';
+import SampleVideoManagement from './pages/admin/SampleVideoManagement';
 
 function App() {
   const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) {
-    return <PageLoading/>;
+    return <PageLoading />;
   }
 
   return (
@@ -49,13 +50,13 @@ function App() {
       {/* Public Routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={
-          isAuthenticated 
-            ? <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} /> 
+          isAuthenticated
+            ? <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} />
             : <Login />
         } />
         <Route path="/register" element={
-          isAuthenticated 
-            ? <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} /> 
+          isAuthenticated
+            ? <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} />
             : <Register />
         } />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -116,21 +117,30 @@ function App() {
         </ProtectedRoute>
       } />
       <Route path="/admin/profile" element={
-                <ProtectedRoute requireAdmin>
-          <AdminLayout><AdminProfile />
-            </AdminLayout></ProtectedRoute>} />
-
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <AdminProfile />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/sample-videos" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <SampleVideoManagement />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
       {/* Other Routes */}
       <Route path="/unauthorized" element={<Unauthorized />} />
       <Route path="/not-found" element={<NotFound />} />
-      
+
       {/* Home redirect */}
       <Route path="/" element={
-        isAuthenticated 
+        isAuthenticated
           ? <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} />
           : <Navigate to="/login" />
       } />
-      
+
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/not-found" />} />
     </Routes>

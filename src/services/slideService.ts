@@ -1,4 +1,5 @@
 import { API_CONFIG } from '../config/api';
+import axios from 'axios';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -218,4 +219,39 @@ export const combineMetadataWithImages = (
       filename: `slide_${idx}.png`
     }))
   };
+};
+
+export const extractPptxText = async (file: File): Promise<{
+  success: boolean;
+  slides_text?: Array<{
+    slide_number: number;
+    title: string;
+    content: string;
+    all_text: string[];
+  }>;
+  total_slides?: number;
+  message?: string;
+}> => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axios.post(
+      `${API_BASE_URL}/media/extract-pptx-text`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Error extracting PPTX text:', error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Lỗi khi extract text từ PPTX'
+    };
+  }
 };
