@@ -24,6 +24,8 @@ import {
   SlideData,
   PresentationMetadata
 } from '../../services/slideService';
+import { API_CONFIG, buildApiUrl } from '../../config/api';
+
 
 const SlideToVideo = () => {
   const { user } = useAuth();
@@ -185,7 +187,7 @@ const SlideToVideo = () => {
       
       if (result.success && result.data && result.data.presentations.length > 0) {
         const latestPptx = result.data.presentations[0];
-        const downloadUrl = `http://localhost:8000/api/v1/slides/download/${latestPptx.filename}`;
+        const downloadUrl = buildApiUrl(`/slides/download/${latestPptx.filename}`);
         
         const downloadLink = document.createElement('a');
         downloadLink.href = downloadUrl;
