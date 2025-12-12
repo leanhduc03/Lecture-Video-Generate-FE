@@ -9,7 +9,7 @@ const FAKELIP_NGROK_URL = API_CONFIG.FAKELIP_NGROK_URL;
 export const uploadVoiceSample = async (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  
+
   const response = await axios.post(`${API_URL}/media/upload-audio`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -21,19 +21,19 @@ export const uploadVoiceSample = async (file: File) => {
 export const generateSpeech = async (text: string, payload: any) => {
   try {
     console.log('Gửi yêu cầu TTS với payload:', payload);
-    
+
     const response = await axios.post(`${TTS_NGROK_URL}/vietvoice`, payload, {
       headers: {
         'Content-Type': 'application/json',
       },
     });
-    
+
     console.log('TTS API response:', response.data);
-    
+
     if (response.data && response.data.result_url) {
-      return { 
+      return {
         audio_file_url: response.data.result_url,
-        message: response.data.message 
+        message: response.data.message
       };
     } else {
       throw new Error('Không nhận được URL audio từ API');
@@ -48,13 +48,13 @@ export const generateSpeech = async (text: string, payload: any) => {
 export const uploadImageForDeepfake = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
-  
+
   const response = await axios.post(`${API_URL}/media/upload-image`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
-  
+
   if (response.data.success) {
     return response.data.image_url;
   } else {
@@ -66,13 +66,13 @@ export const uploadImageForDeepfake = async (file: File): Promise<string> => {
 export const uploadVideoForDeepfake = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
-  
+
   const response = await axios.post(`${API_URL}/media/upload-video`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
-  
+
   if (response.data.success) {
     return response.data.video_url;
   } else {
@@ -81,46 +81,52 @@ export const uploadVideoForDeepfake = async (file: File): Promise<string> => {
 };
 
 // Hàm gửi yêu cầu deepfake
-export const deepfakeVideo = async (sourceFile: File, targetFile: File): Promise<string> => {
-  try {
-    // Upload qua backend thay vì trực tiếp lên Cloudinary
-    const sourceUrl = await uploadImageForDeepfake(sourceFile);
-    const targetUrl = await uploadVideoForDeepfake(targetFile);
-    
-    console.log('Upload thành công source:', sourceUrl);
-    console.log('Upload thành công target:', targetUrl);
-    
-    // Gửi yêu cầu đến API Deepfake Ngrok
-    const response = await axios.post(`${DEEPFAKE_NGROK_URL}/deepfake`, {
-      source: sourceUrl,
-      target: targetUrl
-    });
-    
-    console.log("Deepfake API response:", response.data);
-    
-    if (response.data && response.data.job_id) {
-      return response.data.job_id;
-    } else {
-      throw new Error('Không nhận được job_id từ API');
-    }
-  } catch (error) {
-    console.error('Error in deepfakeVideo:', error);
-    throw error;
+export const deepfakeVideoWithUrl = async (sourceUrl: string, targetFile: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', targetFile);
+
+  const videoUploadResponse = await fetch(`${API_URL}/upload/upload-video`, {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!videoUploadResponse.ok) {
+    throw new Error('Failed to upload target video');
   }
+
+  const videoData = await videoUploadResponse.json();
+
+  const deepfakeResponse = await fetch(`${API_URL}/upload/process-deepfake`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      source_url: sourceUrl,
+      target_url: videoData.video_url
+    })
+  });
+
+  if (!deepfakeResponse.ok) {
+    throw new Error('Failed to process deepfake');
+  }
+
+  const deepfakeData = await deepfakeResponse.json();
+  return deepfakeData.job_id;
 };
 
 // Hàm kiểm tra trạng thái xử lý deepfake qua backend
-export const checkDeepfakeStatus = async (jobId: string): Promise<{status: string, result_url?: string}> => {
+export const checkDeepfakeStatus = async (jobId: string): Promise<{ status: string, result_url?: string }> => {
   try {
     const response = await axios.get(`${API_URL}/media/deepfake-status/${jobId}`);
     const data = response.data;
-    
+
     if (data.status === 'processing') {
       return { status: 'processing' };
     } else {
-      return { 
+      return {
         status: 'completed',
-        result_url: data.result_url 
+        result_url: data.result_url
       };
     }
   } catch (error) {
@@ -130,17 +136,17 @@ export const checkDeepfakeStatus = async (jobId: string): Promise<{status: strin
 };
 
 // Hàm xử lý fakelip
-export const processFakelip = async (audioUrl: string, videoUrl: string): Promise<{result_url: string}> => {
+export const processFakelip = async (audioUrl: string, videoUrl: string): Promise<{ result_url: string }> => {
   try {
-    console.log('Gửi yêu cầu fakelip với:', {audio_url: audioUrl, video_url: videoUrl});
-    
+    console.log('Gửi yêu cầu fakelip với:', { audio_url: audioUrl, video_url: videoUrl });
+
     const response = await axios.post(`${FAKELIP_NGROK_URL}/fakelip`, {
       audio_url: audioUrl,
       video_url: videoUrl
     });
-    
+
     console.log("Fakelip API response:", response.data);
-    
+
     if (response.data && response.data.result_url) {
       return { result_url: response.data.result_url };
     } else {
@@ -157,18 +163,18 @@ export const uploadToCloudinary = async (file: File, fileType: string): Promise<
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', API_CONFIG.CLOUDINARY_UPLOAD_PRESET);
-  
+
   const uploadUrl = buildCloudinaryUrl(fileType as 'image' | 'video');
-  
+
   const response = await fetch(uploadUrl, {
     method: 'POST',
     body: formData
   });
-  
+
   if (!response.ok) {
     throw new Error('Lỗi khi upload file lên Cloudinary');
   }
-  
+
   const data = await response.json();
   return data.secure_url;
 };
@@ -201,31 +207,31 @@ export const concatVideos = async (videoUrls: string[]) => {
 export const uploadVideoToCloudinary = async (videoUrl: string): Promise<string> => {
   try {
     console.log('Uploading video to Cloudinary:', videoUrl);
-    
+
     // Download video từ URL
     const response = await fetch(videoUrl);
     const blob = await response.blob();
-    
+
     // Tạo FormData
     const formData = new FormData();
     formData.append('file', blob, 'final-video.mp4');
     formData.append('upload_preset', API_CONFIG.CLOUDINARY_UPLOAD_PRESET);
     formData.append('resource_type', 'video');
-    
+
     // Upload lên Cloudinary
     const uploadUrl = buildCloudinaryUrl('video');
     const uploadResponse = await fetch(uploadUrl, {
       method: 'POST',
       body: formData
     });
-    
+
     if (!uploadResponse.ok) {
       throw new Error('Failed to upload video to Cloudinary');
     }
-    
+
     const data = await uploadResponse.json();
     console.log('Video uploaded to Cloudinary:', data.secure_url);
-    
+
     return data.secure_url;
   } catch (error: any) {
     console.error('Error uploading video to Cloudinary:', error);

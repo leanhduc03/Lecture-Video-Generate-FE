@@ -1,30 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { deepfakeVideo, checkDeepfakeStatus } from '../../services/aiService';
-import '../../styles/create-content.css';
+import { deepfakeVideoWithUrl, checkDeepfakeStatus } from '../../services/aiService';
+import { getMyImages, uploadSourceImage, deleteUploadedImage, UploadedImage } from '../../services/uploadedImageService';
+import '../../styles/deepfake.scss';
 
 const DeepfakeVideo = () => {
+  const [sourceMode, setSourceMode] = useState<'upload' | 'existing'>('upload');
   const [sourceFile, setSourceFile] = useState<File | null>(null);
-  const [targetFile, setTargetFile] = useState<File | null>(null);
   const [sourcePreview, setSourcePreview] = useState<string | null>(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [myImages, setMyImages] = useState<UploadedImage[]>([]);
+  const [isUploadingSource, setIsUploadingSource] = useState<boolean>(false);
+  
+  const [targetFile, setTargetFile] = useState<File | null>(null);
   const [targetPreview, setTargetPreview] = useState<string | null>(null);
   const [resultVideo, setResultVideo] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  // const [isCheckingResult, setIsCheckingResult] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [processingProgress, setProcessingProgress] = useState<string>('Đang chuẩn bị...');
 
-  // Xử lý khi người dùng chọn ảnh nguồn
-  const handleSourceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Load danh sách ảnh đã upload khi component mount
+  useEffect(() => {
+    loadMyImages();
+  }, []);
+
+  const loadMyImages = async () => {
+    try {
+      const images = await getMyImages();
+      setMyImages(images);
+    } catch (err) {
+      console.error('Error loading images:', err);
+    }
+  };
+
+  // Xử lý khi người dùng chọn ảnh nguồn từ máy
+  const handleSourceChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSourceFile(file);
-      // Tạo preview cho ảnh nguồn
       const reader = new FileReader();
       reader.onloadend = () => {
         setSourcePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      // Upload ngay lập tức
+      setIsUploadingSource(true);
+      setError(null);
+      try {
+        const uploadedImage = await uploadSourceImage(file);
+        setSelectedImageUrl(uploadedImage.image_url);
+        await loadMyImages(); // Reload danh sách
+      } catch (err) {
+        setError('Không thể upload ảnh. Vui lòng thử lại.');
+        console.error('Upload error:', err);
+      } finally {
+        setIsUploadingSource(false);
+      }
     }
   };
 
@@ -33,7 +65,6 @@ const DeepfakeVideo = () => {
     const file = e.target.files?.[0];
     if (file) {
       setTargetFile(file);
-      // Tạo preview cho video đích
       const reader = new FileReader();
       reader.onloadend = () => {
         setTargetPreview(reader.result as string);
@@ -42,22 +73,44 @@ const DeepfakeVideo = () => {
     }
   };
 
+  // Xử lý khi người dùng chọn ảnh từ danh sách đã upload
+  const handleSelectExistingImage = (imageUrl: string, preview: string) => {
+    setSelectedImageUrl(imageUrl);
+    setSourcePreview(preview);
+  };
+
+  // Xử lý xóa ảnh
+  const handleDeleteImage = async (imageId: number) => {
+    if (!window.confirm('Bạn có chắc muốn xóa ảnh này?')) return;
+    
+    try {
+      await deleteUploadedImage(imageId);
+      await loadMyImages();
+      if (myImages.find(img => img.id === imageId)?.image_url === selectedImageUrl) {
+        setSelectedImageUrl(null);
+        setSourcePreview(null);
+      }
+    } catch (err) {
+      setError('Không thể xóa ảnh. Vui lòng thử lại.');
+      console.error('Delete error:', err);
+    }
+  };
+
   // Gửi yêu cầu deepfake
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sourceFile || !targetFile) {
+    if (!selectedImageUrl || !targetFile) {
       setError('Vui lòng chọn ảnh nguồn và video đích');
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    setResultVideo(null); // Reset kết quả cũ (nếu có)
+    setResultVideo(null);
     setProcessingProgress('Đang tải lên và xử lý...');
 
     try {
-      // Upload và thực hiện deepfake
-      const jobId = await deepfakeVideo(sourceFile, targetFile);
+      const jobId = await deepfakeVideoWithUrl(selectedImageUrl, targetFile);
       setJobId(jobId);
       setProcessingProgress('Đã bắt đầu xử lý video...');
     } catch (err) {
@@ -67,31 +120,6 @@ const DeepfakeVideo = () => {
       setIsLoading(false);
     }
   };
-
-  // Xử lý khi người dùng nhấn nút "Xem video kết quả"
-  // const handleCheckResult = async () => {
-  //   if (!jobId) return;
-
-  //   setIsCheckingResult(true);
-  //   setError(null);
-
-  //   try {
-  //     const result = await checkDeepfakeStatus(jobId);
-
-  //     if (result.status === 'processing') {
-  //       // Nếu video vẫn đang xử lý, thông báo cho người dùng
-  //       setProcessingProgress('Video vẫn đang được xử lý. Vui lòng đợi thêm...');
-  //     } else if (result.result_url) {
-  //       // Nếu video đã sẵn sàng, hiển thị kết quả
-  //       setResultVideo(result.result_url);
-  //     }
-  //   } catch (err) {
-  //     setError('Có lỗi xảy ra khi kiểm tra kết quả. Vui lòng thử lại sau.');
-  //     console.error('Error checking result:', err);
-  //   } finally {
-  //     setIsCheckingResult(false);
-  //   }
-  // };
 
   // Kiểm tra trạng thái xử lý định kỳ
   useEffect(() => {
@@ -111,7 +139,6 @@ const DeepfakeVideo = () => {
         try {
           const result = await checkDeepfakeStatus(jobId);
 
-          // Cập nhật thông báo tiến trình để người dùng không cảm thấy chờ đợi
           if (result.status === 'processing') {
             if (progressCounter < progressMessages.length) {
               setProcessingProgress(progressMessages[progressCounter]);
@@ -124,7 +151,7 @@ const DeepfakeVideo = () => {
         } catch (err) {
           console.error('Error checking status:', err);
         }
-      }, 30000); // Kiểm tra mỗi 30 giây
+      }, 30000);
     }
 
     return () => {
@@ -136,34 +163,23 @@ const DeepfakeVideo = () => {
     if (!resultVideo) return;
 
     try {
-      // Hiển thị thông báo đang tải
       setError(null);
       const loadingMessage = document.createElement('div');
       loadingMessage.className = 'download-loading';
       loadingMessage.textContent = 'Đang chuẩn bị tải xuống...';
       document.querySelector('.result-container')?.appendChild(loadingMessage);
 
-      // Tải file từ URL
       const response = await fetch(resultVideo);
       const blob = await response.blob();
-
-      // Tạo URL đối tượng từ blob
       const blobUrl = window.URL.createObjectURL(blob);
-
-      // Tạo thẻ a ẩn để tải xuống
       const downloadLink = document.createElement('a');
       downloadLink.href = blobUrl;
-
-      // Lấy tên file từ URL hoặc tạo tên mặc định
       const fileName = resultVideo.split('/').pop() || 'deepfake-video.mp4';
       downloadLink.download = fileName;
-
-      // Thêm vào DOM, kích hoạt sự kiện click và xóa
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
 
-      // Giải phóng URL đối tượng
       setTimeout(() => {
         window.URL.revokeObjectURL(blobUrl);
         document.querySelector('.download-loading')?.remove();
@@ -178,26 +194,75 @@ const DeepfakeVideo = () => {
   return (
     <div className="deepfake-container">
       <h2>Tạo Video Deepfake</h2>
-      <p>Tải lên ảnh của bạn và chọn video đích để tạo deepfake</p>
-
-      {/* Phần Debug - Xóa sau khi test */}
-      {jobId && <div style={{ background: "#e8f5e9", padding: "10px", margin: "10px 0", borderRadius: "4px" }}>
-        Job ID đã được nhận: {jobId}
-      </div>}
+      <p>Chọn ảnh của bạn và video đích để tạo deepfake</p>
 
       <form onSubmit={handleSubmit} className="deepfake-form">
         <div className="upload-section">
           <div className="upload-box">
-            <label htmlFor="source-image">Ảnh nguồn (khuôn mặt của bạn)</label>
-            <input
-              type="file"
-              id="source-image"
-              accept="image/*"
-              onChange={handleSourceChange}
-            />
-            {sourcePreview && (
-              <div className="preview">
-                <img src={sourcePreview} alt="Source Preview" />
+            <label>Ảnh nguồn (khuôn mặt của bạn)</label>
+            
+            <div className="source-mode-selector">
+              <button
+                type="button"
+                className={sourceMode === 'upload' ? 'active' : ''}
+                onClick={() => setSourceMode('upload')}
+              >
+                Upload ảnh mới
+              </button>
+              <button
+                type="button"
+                className={sourceMode === 'existing' ? 'active' : ''}
+                onClick={() => setSourceMode('existing')}
+              >
+                Chọn ảnh đã có
+              </button>
+            </div>
+
+            {sourceMode === 'upload' ? (
+              <>
+                <input
+                  type="file"
+                  id="source-image"
+                  accept="image/*"
+                  onChange={handleSourceChange}
+                  disabled={isUploadingSource}
+                />
+                {isUploadingSource && <p className="upload-status">Đang upload...</p>}
+                {sourcePreview && (
+                  <div className="preview">
+                    <img src={sourcePreview} alt="Source Preview" />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="existing-images-grid">
+                {myImages.length === 0 ? (
+                  <p>Bạn chưa có ảnh nào. Hãy upload ảnh mới!</p>
+                ) : (
+                  myImages.map((image) => (
+                    <div
+                      key={image.id}
+                      className={`image-item ${selectedImageUrl === image.image_url ? 'selected' : ''}`}
+                    >
+                      <img
+                        src={image.image_url}
+                        alt={image.name}
+                        onClick={() => handleSelectExistingImage(image.image_url, image.image_url)}
+                      />
+                      <button
+                        type="button"
+                        className="delete-image-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteImage(image.id);
+                        }}
+                      >
+                        ×
+                      </button>
+                      <span className="image-name">{image.name}</span>
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -224,21 +289,10 @@ const DeepfakeVideo = () => {
           <button
             type="submit"
             className="deepfake-button"
-            disabled={isLoading || !sourceFile || !targetFile}
+            disabled={isLoading || !selectedImageUrl || !targetFile}
           >
             {isLoading ? 'Đang xử lý...' : 'Tạo Video Deepfake'}
           </button>
-
-          {/* {jobId && !resultVideo && (
-            <button
-              type="button"
-              className="check-result-button"
-              onClick={handleCheckResult}
-              disabled={isCheckingResult}
-            >
-              {isCheckingResult ? 'Đang kiểm tra...' : 'Xem video kết quả'}
-            </button>
-          )} */}
         </div>
       </form>
 
@@ -255,23 +309,18 @@ const DeepfakeVideo = () => {
           <h3>Video Deepfake của bạn</h3>
           <video src={resultVideo} controls width="100%"></video>
           <div className="result-actions">
-            <button
-              onClick={handleDownload}
-              className="download-button"
-            >
+            <button onClick={handleDownload} className="download-button">
               Tải video xuống
             </button>
-            {jobId && (
-              <button
-                className="new-deepfake-button"
-                onClick={() => {
-                  setJobId(null);
-                  setResultVideo(null);
-                }}
-              >
-                Tạo Deepfake mới
-              </button>
-            )}
+            <button
+              className="new-deepfake-button"
+              onClick={() => {
+                setJobId(null);
+                setResultVideo(null);
+              }}
+            >
+              Tạo Deepfake mới
+            </button>
           </div>
         </div>
       )}

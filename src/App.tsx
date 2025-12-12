@@ -22,12 +22,13 @@ import UserDashboard from './pages/user/Dashboard';
 import UserProfile from './pages/user/Profile';
 import CreateContent from './pages/user/CreateContent';
 import MyVideos from './pages/user/MyVideos';
-import AllVideos from './pages/admin/AllVideos';
+import MyLibrary from './pages/user/MyLibrary';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminUserManagement from './pages/admin/UserManagement';
 import AdminProfile from './pages/admin/Profile';
+import AllVideos from './pages/admin/AllVideos';
 
 // Common & Error Pages
 import NotFound from './pages/NotFound';
@@ -90,6 +91,13 @@ function App() {
         <ProtectedRoute>
           <UserLayout>
             <MyVideos />
+          </UserLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/my-library" element={
+        <ProtectedRoute>
+          <UserLayout>
+            <MyLibrary />
           </UserLayout>
         </ProtectedRoute>
       } />
