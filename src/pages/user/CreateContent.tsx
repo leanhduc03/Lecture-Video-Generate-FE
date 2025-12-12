@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom';
 import TextToSpeech from '../../components/ai-features/TextToSpeech';
 import DeepfakeVideo from '../../components/ai-features/DeepfakeVideo';
 import FakelipVideo from '../../components/ai-features/FakelipVideo';
-import CombinedAIFeature from '../../components/ai-features/CombinedAIFeature';
 import SlideToVideo from '../../components/ai-features/SlideToVideo';
 import UploadedSlideToVideo from '../../components/ai-features/UploadedSlideToVideo';
 
@@ -60,7 +59,6 @@ const CreateContent = () => {
         <div className="tab-content">
           {activeTab === 'slide' && <SlideToVideo />}
           {activeTab === 'uploadedslide' && <UploadedSlideToVideo />}
-          {activeTab === 'combined' && <CombinedAIFeature />}
           {activeTab === 'tts' && <TextToSpeech />}
           {activeTab === 'deepfake' && <DeepfakeVideo />}
           {activeTab === 'fakelip' && <FakelipVideo />}

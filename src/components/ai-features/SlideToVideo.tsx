@@ -13,6 +13,8 @@ import {
   generateSlidesFromContent,
   downloadPptxFile,
   uploadPptxAndExtractSlides,
+  uploadPptxAndExtractSlidesImage,
+  extractPptxText, // ⭐ Thêm import này
   fetchSlideMetadata,
   getPresentationsList,
   saveSlideMetadata,
@@ -24,6 +26,7 @@ import {
   SlideData,
   PresentationMetadata
 } from '../../services/slideService';
+import { getSampleVideos, SampleVideo } from '../../services/sampleVideoService';
 import { API_CONFIG, buildApiUrl } from '../../config/api';
 
 
@@ -38,6 +41,7 @@ const SlideToVideo = () => {
   // Presentation metadata
   const [metadata, setMetadata] = useState<PresentationMetadata | null>(null);
   const [slides, setSlides] = useState<SlideMetadata[]>([]);
+  const [savedSlideData, setSavedSlideData] = useState<SlideData[]>([]); // ⭐ Thêm state backup
 
   // User uploaded PPTX
   const [userUploadedPptx, setUserUploadedPptx] = useState<File | null>(null);
@@ -51,6 +55,8 @@ const SlideToVideo = () => {
   // Video selection
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string>('');
+  const [loadingVideos, setLoadingVideos] = useState(true);
+  const [videoOptions, setVideoOptions] = useState<SampleVideo[]>([]);
 
   // Voice mode selection
   const [voiceMode, setVoiceMode] = useState<'preset' | 'clone'>('preset');
@@ -71,11 +77,26 @@ const SlideToVideo = () => {
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const videoOptions = [
-    { id: 'video1', name: 'Video Giảng Viên 1', url: 'https://res.cloudinary.com/diqes2eof/video/upload/v1764513335/wplccpvu4xgorhjhdkng.mp4' },
-    { id: 'video2', name: 'Video Giảng Viên 2', url: 'https://res.cloudinary.com/diqes2eof/video/upload/v1731596901/samples/teacher2.mp4' },
-    { id: 'video3', name: 'Video Giảng Viên 3', url: 'https://res.cloudinary.com/diqes2eof/video/upload/v1731596901/samples/teacher3.mp4' }
-  ];
+  // Load sample videos from API
+  useEffect(() => {
+    const loadSampleVideos = async () => {
+      try {
+        setLoadingVideos(true);
+        const response = await getSampleVideos(true); // Chỉ lấy video active
+        setVideoOptions(response.videos);
+        if (response.videos.length > 0) {
+          setSelectedVideoUrl(response.videos[0].video_url);
+        }
+      } catch (error) {
+        console.error('Error loading sample videos:', error);
+        setError('Không thể tải danh sách video mẫu');
+      } finally {
+        setLoadingVideos(false);
+      }
+    };
+
+    loadSampleVideos();
+  }, []);
 
   // Preset voice options
   const genderOptions = [
@@ -210,6 +231,7 @@ const SlideToVideo = () => {
     }
   };
 
+  // ⭐ CHỈ THAY ĐỔI FUNCTION NÀY - Upload PPTX đã chỉnh sửa
   const uploadEditedPptx = async () => {
     if (!userUploadedPptx) {
       setError('Vui lòng chọn file PPTX đã chỉnh sửa');
@@ -220,21 +242,58 @@ const SlideToVideo = () => {
     setError(null);
 
     try {
-      const result = await uploadPptxAndExtractSlides(userUploadedPptx);
+      console.log('📸 Extracting images from uploaded PPTX...');
+      const imageResult = await uploadPptxAndExtractSlidesImage(userUploadedPptx);
       
-      if (result.success && result.slides) {
-        const updatedSlides = result.slides.map((img: any, idx: number) => ({
-          slide_number: idx,
-          type: idx === 0 ? 'title' : 'content',
-          title: `Slide ${idx + 1}`,
-          filepath: img.image_url,
-          filename: `slide_${idx}.png`
-        }));
+      console.log('📝 Extracting text from uploaded PPTX...');
+      const textResult = await extractPptxText(userUploadedPptx);
+      console.log('✅ Text extraction result:', textResult);
+  
+      if (imageResult.success && imageResult.slides) {
+        const uploadedSlides: SlideMetadata[] = imageResult.slides.map((img: any, idx: number) => {
+          const slideText = textResult.slides_text?.find((s: any) => s.slide_number === idx);
+          
+          return {
+            slide_number: idx,
+            type: idx === 0 ? 'title' : 'content',
+            title: slideText?.title || `Slide ${idx + 1}`,
+            filepath: img.image_url,
+            filename: `slide_${idx}.png`
+          };
+        });
 
-        setSlides(updatedSlides);
-        setMetadata(prev => prev ? { ...prev, slides: updatedSlides } : null);
+        console.log('📋 Uploaded slides with extracted text:', uploadedSlides);
+
+        setSlides(uploadedSlides);
         
-        enterEditMode(result.slides.length);
+        // ⭐ Tạo metadata mới với content đã extract
+        const updatedMetadata: PresentationMetadata = {
+          title: userUploadedPptx.name.replace('.pptx', ''),
+          total_slides: uploadedSlides.length,
+          created_at: new Date().toISOString(),
+          slides: uploadedSlides,
+          slide_data: {
+            title: userUploadedPptx.name.replace('.pptx', ''),
+            slides: uploadedSlides.map((slide: SlideMetadata, idx: number) => {
+              const slideText = textResult.slides_text?.find((s: any) => s.slide_number === idx);
+              
+              return {
+                slide_number: idx,
+                title: slide.title || `Slide ${idx + 1}`,
+                content: [],
+                original_content: slideText?.content || ''
+              };
+            })
+          }
+        };
+
+        console.log('💾 Updated metadata with extracted content:', updatedMetadata);
+
+        setMetadata(updatedMetadata);
+        setUserUploadedPptx(null); // ⭐ Reset để ẩn nút upload
+        
+        enterEditModeWithMetadata(uploadedSlides, updatedMetadata);
+        
         setError(null);
       } else {
         throw new Error('Không thể tách slides thành images');
@@ -247,6 +306,35 @@ const SlideToVideo = () => {
     }
   };
 
+  // ⭐ Thêm state để lưu slides cho edit mode
+  const [editModeSlides, setEditModeSlides] = useState<SlideMetadata[]>([]);
+
+  // ⭐ Function mới - Vào edit mode với metadata parameter (giống UploadedSlideToVideo)
+  const enterEditModeWithMetadata = (uploadedSlides: SlideMetadata[], metadataToUse: PresentationMetadata) => {
+    const editData: SlideData[] = uploadedSlides.map((slide, idx) => {
+      const slideData = metadataToUse.slide_data.slides[idx];
+      
+      console.log(`Slide ${idx} content:`, slideData?.original_content);
+      console.log(`Slide ${idx} image:`, slide.filepath); // ⭐ Debug log
+      
+      return {
+        slide_number: idx,
+        title: slide.title || `Slide ${idx + 1}`,
+        content: slideData?.content || [],
+        original_content: slideData?.original_content || ''
+      };
+    });
+    
+    console.log('✅ Edit data with extracted content:', editData);
+    console.log('✅ Slides with images:', uploadedSlides); // ⭐ Debug log
+    
+    setEditedSlideData(editData);
+    setSavedSlideData([...editData]);
+    setEditModeSlides(uploadedSlides); // ⭐ Lưu slides cho edit mode
+    setEditMode(true);
+  };
+
+  // ⭐ Giữ function cũ cho flow generate slides
   const enterEditMode = (newSlideCount?: number) => {
     if (!metadata) return;
     
@@ -276,9 +364,15 @@ const SlideToVideo = () => {
     }
     
     setEditedSlideData(editData);
+    setSavedSlideData([...editData]);
+    setEditModeSlides(slides); // ⭐ Lưu slides hiện tại
     setEditMode(true);
   };
-
+    const handleCancelEdit = () => {
+    setEditedSlideData([...savedSlideData]);
+    setEditMode(false);
+    setEditModeSlides([]); // ⭐ Clear
+  };
   const updateOriginalContent = (slideIndex: number, value: string) => {
     setEditedSlideData(prev => {
       const updated = [...prev];
@@ -308,6 +402,7 @@ const SlideToVideo = () => {
       
       if (result.success) {
         setMetadata(prev => prev ? { ...prev, slide_data: updatedMetadata } : null);
+        setSavedSlideData([...editedSlideData]); // ⭐ Cập nhật backup
         setEditMode(false);
         setError(null);
       } else {
@@ -487,11 +582,17 @@ const SlideToVideo = () => {
     setNumSlides(undefined);
     setMetadata(null);
     setSlides([]);
+    setSavedSlideData([]);
+    setEditModeSlides([]); // ⭐ Clear
     setUserUploadedPptx(null);
     setEditMode(false);
     setEditedSlideData([]);
-    setSelectedVideoFile(null);
-    setSelectedVideoUrl(videoOptions[0].url);
+    // Kiểm tra videoOptions trước khi set
+    if (videoOptions.length > 0) {
+      setSelectedVideoUrl(videoOptions[0].video_url);
+    } else {
+      setSelectedVideoUrl('');
+    }
     setVoiceMode('preset');
     setReferenceAudioFile(null);
     setReferenceAudioUrl('');
@@ -539,10 +640,6 @@ const SlideToVideo = () => {
     }
   };
 
-  useEffect(() => {
-    setSelectedVideoUrl(videoOptions[0].url);
-  }, []);
-
   // EDIT MODE
   if (editMode && editedSlideData.length > 0) {
     return (
@@ -562,10 +659,10 @@ const SlideToVideo = () => {
             }}>
               <div style={{display: 'flex', gap: 20, alignItems: 'flex-start'}}>
                 {/* Slide Image */}
-                {slides[index] && (
+                {editModeSlides[index] && (
                   <div style={{flex: '0 0 400px'}}>
                     <img 
-                      src={slides[index].filepath} 
+                      src={editModeSlides[index].filepath} 
                       alt={`Slide ${index + 1}`} 
                       style={{
                         width: '100%', 
@@ -601,9 +698,7 @@ const SlideToVideo = () => {
                     value={slideData.original_content}
                     onChange={(e) => {
                       const text = e.target.value;
-                      if (text.length <= 250) {
-                        updateOriginalContent(index, text);
-                      }
+                      updateOriginalContent(index, text);
                     }}
                     placeholder="Nhập nội dung thuyết trình (tối đa 250 ký tự)..."
                     rows={8}
@@ -620,11 +715,11 @@ const SlideToVideo = () => {
                   <div style={{
                     marginTop: 8,
                     fontSize: '13px', 
-                    color: slideData.original_content.length > 240 ? '#ff6b6b' : '#666',
-                    fontWeight: slideData.original_content.length > 240 ? 'bold' : 'normal'
+                    color: '#666',
+                    fontWeight: 'normal'
                   }}>
-                    {slideData.original_content.length}/250 ký tự
-                    {slideData.original_content.length > 240 && ' - Gần đạt giới hạn!'}
+                    {slideData.original_content.length}/1000 ký tự
+                    {/* {slideData.original_content.length > 240 && ' - Gần đạt giới hạn!'} */}
                   </div>
                 </div>
               </div>
@@ -633,7 +728,7 @@ const SlideToVideo = () => {
           
           <div style={{marginTop: 30, textAlign: 'center', padding: '20px 0', borderTop: '2px solid #ddd'}}>
             <button 
-              onClick={() => setEditMode(false)}
+              onClick={handleCancelEdit} 
               style={{
                 marginRight: 15, 
                 padding: '12px 30px',
@@ -773,6 +868,7 @@ const SlideToVideo = () => {
               onChange={handleUserUploadPptx}
               style={{marginLeft: 10}}
             />
+            {/* ⭐ Chỉ hiện nút upload khi có file được chọn */}
             {userUploadedPptx && (
               <button 
                 onClick={uploadEditedPptx} 
@@ -802,44 +898,58 @@ const SlideToVideo = () => {
           {/* Video Selection */}
           <div style={{marginBottom: 20}}>
             <h4>Chọn Video Giảng Viên:</h4>
-            <div>
-              <label>
-                <input 
-                  type="radio" 
-                  name="videoChoice" 
-                  checked={!selectedVideoFile}
-                  onChange={() => setSelectedVideoFile(null)}
-                />
-                Sử dụng video mẫu:
-                <select 
-                  value={selectedVideoUrl} 
-                  onChange={handleVideoPresetChange}
-                  disabled={!!selectedVideoFile}
-                  style={{marginLeft: 10, padding: 5}}
-                >
-                  {videoOptions.map(option => (
-                    <option key={option.id} value={option.url}>{option.name}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div style={{marginTop: 10}}>
-              <label>
-                <input 
-                  type="radio" 
-                  name="videoChoice" 
-                  checked={!!selectedVideoFile}
-                  onChange={() => {}}
-                />
-                Upload video tùy chỉnh:
-                <input 
-                  type="file" 
-                  accept="video/*" 
-                  onChange={handleVideoFileChange}
-                  style={{marginLeft: 10}}
-                />
-              </label>
-            </div>
+            
+            {loadingVideos ? (
+              <div style={{ padding: 15, background: '#f0f0f0', borderRadius: 4 }}>
+                ⏳ Đang tải danh sách video mẫu...
+              </div>
+            ) : videoOptions.length === 0 ? (
+              <div style={{ padding: 15, background: '#fff3cd', borderRadius: 4, color: '#856404' }}>
+                ⚠️ Chưa có video mẫu nào. Vui lòng liên hệ admin để thêm video mẫu.
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label>
+                    <input 
+                      type="radio" 
+                      name="videoChoice" 
+                      checked={!selectedVideoFile}
+                      onChange={() => setSelectedVideoFile(null)}
+                    />
+                    Sử dụng video mẫu:
+                    <select 
+                      value={selectedVideoUrl} 
+                      onChange={handleVideoPresetChange}
+                      disabled={!!selectedVideoFile}
+                      style={{marginLeft: 10, padding: 5}}
+                    >
+                      {videoOptions.map(option => (
+                        <option key={option.id} value={option.video_url}>{option.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div style={{marginTop: 10}}>
+                  <label>
+                    <input 
+                      type="radio" 
+                      name="videoChoice" 
+                      checked={!!selectedVideoFile}
+                      onChange={() => {}}
+                    />
+                    Upload video tùy chỉnh:
+                    <input 
+                      type="file" 
+                      accept="video/*" 
+                      onChange={handleVideoFileChange}
+                      style={{marginLeft: 10}}
+                    />
+                  </label>
+                </div>
+              </>
+            )}
+            
             {(selectedVideoUrl || selectedVideoFile) && (
               <video 
                 src={selectedVideoUrl || (selectedVideoFile ? URL.createObjectURL(selectedVideoFile) : '')} 

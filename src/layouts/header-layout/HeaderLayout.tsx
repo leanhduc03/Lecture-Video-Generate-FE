@@ -19,6 +19,9 @@ const HeaderLayout = () => {
                         <div className='header-menu-item'>
                             <Link to="/my-videos">Video của tôi</Link>
                         </div>
+                        <div className='header-menu-item'>
+                            <Link to="/my-library">Thư viện của tôi</Link>
+                        </div>
                     </nav>
                     <div className="user-menu">
                         <Link to="/profile" className='profile'>Hồ sơ</Link>

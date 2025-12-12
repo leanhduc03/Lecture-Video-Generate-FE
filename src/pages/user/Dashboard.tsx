@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { MdHistory, MdMenuBook, MdMovieCreation, MdClose } from "react-icons/md";
+import { MdHistory, MdMenuBook, MdMovieCreation, MdClose, MdFolder } from "react-icons/md";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -15,6 +15,10 @@ const Dashboard = () => {
 
   const handleViewRecentVideos = () => {
     navigate('/my-videos');
+  };
+
+  const handleViewLibrary = () => {
+    navigate('/my-library');
   };
 
   const handleChooseSlideToVideo = () => {
@@ -61,6 +65,20 @@ const Dashboard = () => {
                 Xem
             </button>
         </div>
+        
+        <div className="card">
+            <div className="card-header">
+                <div className="icon-wrapper">
+                    <MdFolder className="icon-card"/>
+                </div>
+                <h3 className="card-header-text">Thư viện của tôi</h3>
+            </div>
+            <p className="card-description">Quản lý các ảnh, giọng nói và video đã tải lên của bạn.</p>
+            <button className="btn-secondary" onClick={handleViewLibrary}>
+                Xem thư viện
+            </button>
+        </div>
+        
         <div className="card">
             <div className="card-header">
                 <div className="icon-wrapper">
