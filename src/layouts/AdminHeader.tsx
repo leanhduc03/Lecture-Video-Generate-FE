@@ -33,7 +33,7 @@ const AdminHeader: FC = () => {
       className="h-16 flex items-center justify-between px-8 border-b border-border-light
         bg-surface-light/80 backdrop-blur-sm fixed top-0 left-0 right-0 z-20">
       <div className="flex items-center gap-3">
-        <Link to="/admin/dashboard" className="text-2xl leading-8 font-bold text-primary">
+        <Link to="/admin/users" className="text-2xl leading-8 font-bold text-primary">
           LectureStudio
         </Link>
       </div>

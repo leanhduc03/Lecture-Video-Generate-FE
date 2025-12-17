@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Chuyển hướng dựa vào vai trò
       if (userData.role === 'admin') {
-        navigate('/admin/dashboard');
+        navigate('/admin/users');
       } else {
         navigate('/dashboard');
       }

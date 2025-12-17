@@ -56,7 +56,7 @@ function App() {
         } />
         <Route path="/register" element={
           isAuthenticated
-            ? <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} />
+            ? <Navigate to={isAdmin ? "/admin/users" : "/dashboard"} />
             : <Register />
         } />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -144,7 +144,7 @@ function App() {
       {/* Home redirect */}
       <Route path="/" element={
         isAuthenticated
-          ? <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} />
+          ? <Navigate to={isAdmin ? "/admin/users" : "/users"} />
           : <Navigate to="/login" />
       } />
 

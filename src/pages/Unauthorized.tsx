@@ -18,7 +18,7 @@ const Unauthorized = () => {
             <p className="mt-3 text-lg text-slate-600 max-w-md mx-auto">Rất tiếc, bạn không có quyền truy cập vào trang này.</p>
             <div className="mt-8">
               {isAuthenticated ? (
-                <Link to={isAdmin ? "/admin/dashboard" : "/dashboard"} className="inline-flex items-center gap-2 bg-primary text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:bg-sky-500 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75 focus:ring-offset-2 focus:ring-offset-background-light">
+                <Link to={isAdmin ? "/admin/users" : "/dashboard"} className="inline-flex items-center gap-2 bg-primary text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:bg-sky-500 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75 focus:ring-offset-2 focus:ring-offset-background-light">
                   <span className="material-symbols-outlined">home</span>
                   Về trang chủ
                 </Link>
