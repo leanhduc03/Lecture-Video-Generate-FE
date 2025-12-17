@@ -45,14 +45,13 @@ function App() {
   if (loading) {
     return <PageLoading />;
   }
-
   return (
     <Routes>
       {/* Public Routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={
           isAuthenticated
-            ? <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} />
+            ? <Navigate to={isAdmin ? "/admin/users" : "/dashboard"} />
             : <Login />
         } />
         <Route path="/register" element={
@@ -127,7 +126,7 @@ function App() {
       <Route path="/admin/profile" element={
         <ProtectedRoute requireAdmin>
           <AdminLayout>
-            <AdminProfile />
+            <UserProfile />
           </AdminLayout>
         </ProtectedRoute>
       } />
