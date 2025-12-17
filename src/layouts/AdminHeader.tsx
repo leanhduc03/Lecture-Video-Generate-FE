@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   UserOutlined,
   LogoutOutlined,
-  VideoCameraOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -34,14 +33,8 @@ const AdminHeader: FC = () => {
       className="h-16 flex items-center justify-between px-8 border-b border-border-light
         bg-surface-light/80 backdrop-blur-sm fixed top-0 left-0 right-0 z-20">
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-8 h-8 bg-primary rounded-lg">
-          <VideoCameraOutlined className="text-white text-lg" />
-        </div>
-        <Link
-          to="/admin/dashboard"
-          className="text-xl font-bold text-text-light"
-        >
-          LecVidGen
+        <Link to="/admin/dashboard" className="text-2xl leading-8 font-bold text-primary">
+          LectureStudio
         </Link>
       </div>
       <div className="flex items-center gap-4 ml-auto">
@@ -51,7 +44,7 @@ const AdminHeader: FC = () => {
             className="flex items-center gap-2 text-sm text-text-muted-light hover:text-primary"
             >
             <UserOutlined />
-            <span>{user ? `Admin: ${user.username}` : "Tài khoản"}</span>
+            <span>{user ? `${user.username}` : "Tài khoản"}</span>
           </Button>
         </Dropdown>
       </div>
