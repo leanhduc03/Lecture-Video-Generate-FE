@@ -22,6 +22,8 @@ import {
   PresentationMetadata
 } from '../../services/slideService';
 import { getSampleVideos, SampleVideo } from '../../services/sampleVideoService';
+import { getMyAudios, uploadReferenceAudio, deleteUploadedAudio, UploadedAudio } from '../../services/uploadedAudioService';
+import { getMediaVideos, MediaVideo } from '../../services/mediaVideoService';
 
 const UploadedSlideToVideo = () => {
   const { user } = useAuth();
@@ -48,9 +50,15 @@ const UploadedSlideToVideo = () => {
   const [voiceMode, setVoiceMode] = useState<'preset' | 'clone'>('preset');
 
   // Mode 1: Voice Cloning
+  const [audioMode, setAudioMode] = useState<'upload' | 'existing'>('upload');
   const [referenceAudioFile, setReferenceAudioFile] = useState<File | null>(null);
   const [referenceAudioUrl, setReferenceAudioUrl] = useState<string>('');
   const [referenceText, setReferenceText] = useState<string>('');
+  const [myAudios, setMyAudios] = useState<UploadedAudio[]>([]);
+  const [isUploadingAudio, setIsUploadingAudio] = useState<boolean>(false);
+  const [tempReferenceText, setTempReferenceText] = useState<string>('');
+  const [showAudioWarning, setShowAudioWarning] = useState<boolean>(false);
+  const [audioDuration, setAudioDuration] = useState<number>(0);
 
   // Mode 2: Preset Voice
   const [gender, setGender] = useState<string>('male');
@@ -63,24 +71,38 @@ const UploadedSlideToVideo = () => {
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingVideos, setLoadingVideos] = useState(true);
-  const [videoOptions, setVideoOptions] = useState<SampleVideo[]>([]);
+  const [videoOptions, setVideoOptions] = useState<MediaVideo[]>([]);
 
   // Load sample videos from API
   useEffect(() => {
     const loadSampleVideos = async () => {
       try {
-        const response = await getSampleVideos(true); // Chỉ lấy video active
+        setLoadingVideos(true);
+        const response = await getMediaVideos('sample'); // Chỉ lấy video sample
         setVideoOptions(response.videos);
         if (response.videos.length > 0) {
           setSelectedVideoUrl(response.videos[0].video_url);
         }
       } catch (error) {
         console.error('Error loading sample videos:', error);
+        setError('Không thể tải danh sách video mẫu');
+      } finally {
+        setLoadingVideos(false);
       }
     };
 
     loadSampleVideos();
+    loadMyAudios();
   }, []);
+
+  const loadMyAudios = async () => {
+    try {
+      const audios = await getMyAudios();
+      setMyAudios(audios);
+    } catch (err) {
+      console.error('Error loading audios:', err);
+    }
+  };
 
   // Preset voice options
   const genderOptions = [
@@ -283,14 +305,102 @@ const UploadedSlideToVideo = () => {
     setSelectedVideoFile(null);
   };
 
-  const handleReferenceAudioFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setReferenceAudioFile(e.target.files[0]);
-      setReferenceAudioUrl('');
+  const handleReferenceAudioFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/')) {
+      setError('Vui lòng chọn file audio');
+      e.target.value = ''; // Reset input
+      return;
+    }
+
+    // Kiểm tra phải có reference text
+    if (!tempReferenceText.trim()) {
+      setError('Vui lòng nhập Reference Text trước khi upload audio');
+      e.target.value = ''; // Reset input
+      return;
+    }
+
+    // Kiểm tra độ dài audio
+    const audio = document.createElement('audio');
+    const objectUrl = URL.createObjectURL(file);
+    audio.src = objectUrl;
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        audio.onloadedmetadata = () => {
+          URL.revokeObjectURL(objectUrl);
+          if (audio.duration > 15) {
+            setAudioDuration(Math.round(audio.duration));
+            setShowAudioWarning(true);
+            e.target.value = '';
+            reject(new Error('Audio too long'));
+          } else {
+            resolve();
+          }
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          setError('Không thể đọc file audio');
+          e.target.value = '';
+          reject(new Error('Cannot read audio'));
+        };
+      });
+    } catch (err) {
+      // Dừng lại nếu audio không hợp lệ
+      return;
+    }
+
+    setReferenceAudioFile(file);
+
+    // Upload ngay lập tức
+    setIsUploadingAudio(true);
+    setError(null);
+    try {
+      const uploadedAudio = await uploadReferenceAudio(file, tempReferenceText);
+      setReferenceAudioUrl(uploadedAudio.audio_url);
+      setReferenceText(uploadedAudio.reference_text);
+      await loadMyAudios();
+      setTempReferenceText(''); // Reset temp text
+      e.target.value = ''; // Reset input để có thể chọn file khác
+    } catch (err) {
+      setError('Không thể upload audio. Vui lòng thử lại.');
+      console.error('Upload error:', err);
+      e.target.value = ''; // Reset input
+    } finally {
+      setIsUploadingAudio(false);
     }
   };
 
-  const uploadReferenceAudio = async (): Promise<string> => {
+  const handleSelectExistingAudio = (audio: UploadedAudio) => {
+    setReferenceAudioUrl(audio.audio_url);
+    setReferenceText(audio.reference_text);
+  };
+
+  const handleDeleteAudio = async (audioId: number) => {
+    if (!window.confirm('Bạn có chắc muốn xóa audio này?')) return;
+    
+    try {
+      await deleteUploadedAudio(audioId);
+      await loadMyAudios();
+      if (myAudios.find(aud => aud.id === audioId)?.audio_url === referenceAudioUrl) {
+        setReferenceAudioUrl('');
+        setReferenceText('');
+      }
+    } catch (err) {
+      setError('Không thể xóa audio. Vui lòng thử lại.');
+      console.error('Delete error:', err);
+    }
+  };
+
+  const uploadReferenceAudioIfNeeded = async (): Promise<string> => {
+    // Nếu đã có URL (từ upload trước hoặc chọn từ thư viện) thì return luôn
+    if (referenceAudioUrl) {
+      return referenceAudioUrl;
+    }
+    
+    // Nếu có file mới chưa upload thì upload
     if (referenceAudioFile) {
       const result = await uploadAudioFile(referenceAudioFile);
       if (result.success && result.audio_url) {
@@ -299,14 +409,15 @@ const UploadedSlideToVideo = () => {
         throw new Error('Không thể upload reference audio');
       }
     }
-    return referenceAudioUrl;
+    
+    throw new Error('Không có audio để sử dụng');
   };
 
   useEffect(() => {
     const loadSampleVideos = async () => {
       try {
-        setLoadingVideos(true); // Bắt đầu loading
-        const response = await getSampleVideos(true); // Chỉ lấy video active
+        setLoadingVideos(true);
+        const response = await getMediaVideos('sample'); // Chỉ lấy video sample
         setVideoOptions(response.videos);
         if (response.videos.length > 0) {
           setSelectedVideoUrl(response.videos[0].video_url);
@@ -315,7 +426,7 @@ const UploadedSlideToVideo = () => {
         console.error('Error loading sample videos:', error);
         setError('Không thể tải danh sách video mẫu');
       } finally {
-        setLoadingVideos(false); // Kết thúc loading
+        setLoadingVideos(false);
       }
     };
 
@@ -348,13 +459,13 @@ const UploadedSlideToVideo = () => {
       return;
     }
 
-    if (voiceMode === 'clone' && !referenceAudioUrl && !referenceAudioFile) {
-      setError('Vui lòng upload file audio mẫu cho chế độ voice cloning');
+    if (voiceMode === 'clone' && !referenceAudioUrl) {
+      setError('Vui lòng chọn hoặc upload file audio mẫu cho chế độ voice cloning');
       return;
     }
 
     if (voiceMode === 'clone' && !referenceText.trim()) {
-      setError('Vui lòng nhập reference text cho chế độ voice cloning');
+      setError('Vui lòng nhập reference text cho audio đã chọn');
       return;
     }
 
@@ -371,7 +482,7 @@ const UploadedSlideToVideo = () => {
       // Upload reference audio if in clone mode
       let refAudioUrl = '';
       if (voiceMode === 'clone') {
-        refAudioUrl = await uploadReferenceAudio();
+        refAudioUrl = await uploadReferenceAudioIfNeeded();
       }
 
       for (let i = 0; i < slides.length; i++) {
@@ -459,9 +570,11 @@ const UploadedSlideToVideo = () => {
     setSelectedVideoFile(null);
     setSelectedVideoUrl(videoOptions[0].video_url);
     setVoiceMode('preset');
+    setAudioMode('upload');
     setReferenceAudioFile(null);
     setReferenceAudioUrl('');
     setReferenceText('');
+    setTempReferenceText('');
     setGender('male');
     setArea('northern');
     setGroup('news');
@@ -640,6 +753,76 @@ const UploadedSlideToVideo = () => {
       <h2>Upload Slide to Video - Tạo video bài giảng từ PowerPoint có sẵn</h2>
 
       {error && <div className="error-message">{error}</div>}
+
+      {/* Audio Warning Modal */}
+      {showAudioWarning && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: '30px',
+            maxWidth: '450px',
+            width: '90%',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              backgroundColor: '#fff3cd',
+              margin: '0 auto 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '30px'
+            }}>
+              ⚠️
+            </div>
+            <h3 style={{ marginBottom: '15px', color: '#333', fontSize: '20px' }}>
+              File audio quá dài
+            </h3>
+            <p style={{ marginBottom: '10px', color: '#666', fontSize: '16px', lineHeight: '1.5' }}>
+              File audio phải có độ dài dưới <strong>15 giây</strong>
+            </p>
+            <p style={{ marginBottom: '25px', color: '#856404', fontSize: '15px' }}>
+              File của bạn có độ dài: <strong>{audioDuration} giây</strong>
+            </p>
+            <button
+              onClick={() => {
+                setShowAudioWarning(false);
+                setError(null);
+              }}
+              style={{
+                padding: '12px 30px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: 6,
+                fontSize: '16px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                transition: 'background-color 0.3s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
+            >
+              Đã hiểu
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Step 1: Upload PPTX */}
       {!metadata && (
@@ -893,56 +1076,301 @@ const UploadedSlideToVideo = () => {
             {voiceMode === 'clone' && (
               <div style={{ padding: 15, background: '#fff3cd', borderRadius: 5 }}>
                 <h5>Clone giọng từ file mẫu:</h5>
-                <div style={{ marginBottom: 15 }}>
-                  <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
-                    Upload file audio mẫu:
-                  </label>
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleReferenceAudioFileChange}
-                  />
-                  {referenceAudioFile && (
-                    <div style={{
-                      marginTop: 10,
-                      padding: 10,
-                      background: '#e8f5e9',
+                
+                <div className="audio-mode-selector" style={{ marginBottom: 15 }}>
+                  <button
+                    type="button"
+                    style={{
+                      marginRight: 10,
+                      padding: '8px 16px',
+                      background: audioMode === 'upload' ? '#007bff' : '#f0f0f0',
+                      color: audioMode === 'upload' ? 'white' : '#333',
+                      border: 'none',
                       borderRadius: 4,
-                      color: '#2e7d32'
-                    }}>
-                      ✓ Đã chọn: {referenceAudioFile.name}
-                    </div>
-                  )}
-                  {(referenceAudioUrl || referenceAudioFile) && (
-                    <audio
-                      src={referenceAudioUrl || (referenceAudioFile ? URL.createObjectURL(referenceAudioFile) : '')}
-                      controls
-                      style={{ width: '100%', marginTop: 10 }}
-                    />
-                  )}
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setAudioMode('upload')}
+                  >
+                    Upload audio mới
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      padding: '8px 16px',
+                      background: audioMode === 'existing' ? '#007bff' : '#f0f0f0',
+                      color: audioMode === 'existing' ? 'white' : '#333',
+                      border: 'none',
+                      borderRadius: 4,
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setAudioMode('existing')}
+                  >
+                    Chọn audio đã có
+                  </button>
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
-                    Reference Text (nội dung của audio mẫu):
-                  </label>
-                  <textarea
-                    value={referenceText}
-                    onChange={(e) => setReferenceText(e.target.value)}
-                    placeholder="Nhập nội dung tương ứng với file audio mẫu..."
-                    rows={4}
-                    style={{
-                      width: '100%',
-                      padding: 10,
-                      border: '1px solid #ddd',
-                      borderRadius: 4,
-                      fontFamily: 'inherit'
-                    }}
-                  />
-                  <div style={{ fontSize: '13px', color: '#666', marginTop: 5 }}>
-                    Reference text giúp mô hình hiểu rõ hơn về giọng nói trong file mẫu
+                {audioMode === 'upload' ? (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+                      Upload file audio mẫu:
+                    </label>
+                    
+                    <div style={{ marginBottom: 10 }}>
+                      <label style={{ display: 'block', marginBottom: 5 }}>
+                        Reference Text <span style={{ color: 'red' }}>*</span> (bắt buộc):
+                      </label>
+                      <textarea
+                        value={tempReferenceText}
+                        onChange={(e) => setTempReferenceText(e.target.value)}
+                        placeholder="Nhập nội dung tương ứng với audio (bắt buộc trước khi upload)..."
+                        rows={3}
+                        style={{
+                          width: '100%',
+                          padding: 10,
+                          border: tempReferenceText.trim() ? '1px solid #ddd' : '2px solid #ff9800',
+                          borderRadius: 4,
+                          fontFamily: 'inherit',
+                          marginBottom: 10,
+                          backgroundColor: tempReferenceText.trim() ? 'white' : '#fff3cd'
+                        }}
+                      />
+                      <small style={{ 
+                        display: 'block', 
+                        color: tempReferenceText.trim() ? '#666' : '#ff9800',
+                        fontWeight: tempReferenceText.trim() ? 'normal' : 'bold'
+                      }}>
+                        {tempReferenceText.trim() 
+                          ? `✓ ${tempReferenceText.length} ký tự` 
+                          : '⚠️ Vui lòng nhập reference text trước khi chọn file audio'}
+                      </small>
+                      <div style={{ color: '#666', fontSize: '13px', marginTop: 5, fontStyle: 'italic' }}>
+                        💡 Lưu ý: File audio phải có độ dài dưới 15 giây
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: 10 }}>
+                      <label 
+                        htmlFor="audio-upload-input"
+                        style={{
+                          display: 'inline-block',
+                          padding: '10px 20px',
+                          background: tempReferenceText.trim() ? '#007bff' : '#ccc',
+                          color: 'white',
+                          borderRadius: 4,
+                          cursor: tempReferenceText.trim() ? 'pointer' : 'not-allowed',
+                          fontWeight: 'bold',
+                          textAlign: 'center'
+                        }}
+                      >
+                        {isUploadingAudio ? '⏳ Đang upload...' : '📁 Chọn file audio'}
+                      </label>
+                      <input
+                        id="audio-upload-input"
+                        type="file"
+                        accept="audio/*"
+                        onChange={handleReferenceAudioFileChange}
+                        disabled={isUploadingAudio || !tempReferenceText.trim()}
+                        style={{ display: 'none' }}
+                      />
+                      {!tempReferenceText.trim() && (
+                        <p style={{ 
+                          marginTop: 5, 
+                          fontSize: '13px', 
+                          color: '#ff9800',
+                          fontStyle: 'italic'
+                        }}>
+                          ⓘ Nhập reference text ở trên để kích hoạt nút chọn file
+                        </p>
+                      )}
+                    </div>
+                    
+                    {isUploadingAudio && (
+                      <div style={{ 
+                        marginTop: 10,
+                        padding: 10,
+                        background: '#e3f2fd',
+                        borderRadius: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10
+                      }}>
+                        <div className="spinner" style={{
+                          width: 20,
+                          height: 20,
+                          border: '3px solid #f3f3f3',
+                          borderTop: '3px solid #007bff',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }}></div>
+                        <p style={{ color: '#007bff', fontStyle: 'italic', margin: 0 }}>
+                          Đang upload audio...
+                        </p>
+                      </div>
+                    )}
+
+                    {/* {referenceAudioUrl && audioMode === 'upload' && (
+                      <div style={{
+                        marginTop: 10,
+                        padding: 15,
+                        background: '#e8f5e9',
+                        borderRadius: 4,
+                        border: '2px solid #4caf50'
+                      }}>
+                        <p style={{ color: '#2e7d32', marginBottom: 10, fontWeight: 'bold' }}>
+                          ✓ Đã upload thành công!
+                        </p>
+                        <audio
+                          src={referenceAudioUrl}
+                          controls
+                          style={{ width: '100%', marginBottom: 10 }}
+                        />
+                        {referenceText && (
+                          <div style={{
+                            padding: 10,
+                            background: 'white',
+                            borderRadius: 4,
+                            border: '1px solid #c8e6c9'
+                          }}>
+                            <strong style={{ color: '#2e7d32' }}>Reference Text:</strong>
+                            <p style={{ marginTop: 5, fontSize: '13px', color: '#333' }}>
+                              {referenceText}
+                            </p>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReferenceAudioUrl('');
+                            setReferenceText('');
+                          }}
+                          style={{
+                            marginTop: 10,
+                            padding: '6px 12px',
+                            background: '#f44336',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: '13px'
+                          }}
+                        >
+                           Upload lại Audio
+                        </button>
+                      </div>
+                    )} */}
                   </div>
-                </div>
+                ) : (
+                  <div className="existing-audios-grid" style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                    gap: 15,
+                    maxHeight: 400,
+                    overflowY: 'auto',
+                    padding: 10,
+                    border: '1px solid #ddd',
+                    borderRadius: 5,
+                    background: 'white'
+                  }}>
+                    {myAudios.length === 0 ? (
+                      <p>Bạn chưa có audio nào. Hãy upload audio mới!</p>
+                    ) : (
+                      myAudios.map((audio) => (
+                        <div
+                          key={audio.id}
+                          style={{
+                            position: 'relative',
+                            padding: 15,
+                            border: referenceAudioUrl === audio.audio_url ? '3px solid #007bff' : '2px solid #ddd',
+                            borderRadius: 8,
+                            cursor: 'pointer',
+                            background: referenceAudioUrl === audio.audio_url ? '#e3f2fd' : 'white',
+                            transition: 'all 0.2s'
+                          }}
+                          onClick={() => handleSelectExistingAudio(audio)}
+                        >
+                          <audio
+                            src={audio.audio_url}
+                            controls
+                            style={{ width: '100%', marginBottom: 10 }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <p style={{
+                            fontWeight: 'bold',
+                            marginBottom: 5,
+                            fontSize: '14px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {audio.name}
+                          </p>
+                          <p style={{
+                            fontSize: '12px',
+                            color: '#666',
+                            marginBottom: 5
+                          }}>
+                            {new Date(audio.uploaded_at).toLocaleDateString('vi-VN')}
+                          </p>
+                          {audio.reference_text && (
+                            <p style={{
+                              fontSize: '12px',
+                              color: '#333',
+                              fontStyle: 'italic',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical'
+                            }}>
+                              Text: {audio.reference_text}
+                            </p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteAudio(audio.id);
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: 5,
+                              right: 5,
+                              background: 'rgba(244, 67, 54, 0.9)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: 28,
+                              height: 28,
+                              cursor: 'pointer',
+                              fontSize: 18
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {referenceAudioUrl && referenceText && (
+                  <div style={{
+                    marginTop: 15,
+                    padding: 15,
+                    background: '#e8f5e9',
+                    borderRadius: 4,
+                    border: '1px solid #4caf50'
+                  }}>
+                    <p style={{ fontWeight: 'bold', color: '#2e7d32', marginBottom: 10 }}>
+                      ✓ Audio đã chọn:
+                    </p>
+                    <audio src={referenceAudioUrl} controls style={{ width: '100%', marginBottom: 10 }} />
+                    <div>
+                      <strong>Reference Text:</strong>
+                      <p style={{ marginTop: 5, fontSize: '14px' }}>{referenceText}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

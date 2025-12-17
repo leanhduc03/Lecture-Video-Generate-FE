@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import ImageLibrary from '../../components/library/ImageLibrary';
+import VideoLibrary from '../../components/library/VideoLibrary';
+import AudioLibrary from '../../components/library/AudioLibrary';
 import { MdImage, MdRecordVoiceOver, MdVideoLibrary } from 'react-icons/md';
 import '../../styles/my-library.scss';
 
-type TabType = 'images' | 'voices' | 'videos';
+type TabType = 'images' | 'audios' | 'videos';
 
 const MyLibrary: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('images');
@@ -26,42 +28,26 @@ const MyLibrary: React.FC = () => {
           </button>
           
           <button
-            className={`tab-btn ${activeTab === 'voices' ? 'active' : ''} disabled`}
-            disabled
-            title="Sắp ra mắt"
-          >
-            <MdRecordVoiceOver />
-            <span>Giọng nói</span>
-            {/* <span className="coming-soon">Sắp có</span> */}
-          </button>
-          
-          <button
-            className={`tab-btn ${activeTab === 'videos' ? 'active' : ''} disabled`}
-            disabled
-            title="Sắp ra mắt"
+            className={`tab-btn ${activeTab === 'videos' ? 'active' : ''}`}
+            onClick={() => setActiveTab('videos')}
           >
             <MdVideoLibrary />
             <span>Video</span>
-            {/* <span className="coming-soon">Sắp có</span> */}
+          </button>
+          
+          <button
+            className={`tab-btn ${activeTab === 'audios' ? 'active' : ''}`}
+            onClick={() => setActiveTab('audios')}
+          >
+            <MdRecordVoiceOver />
+            <span>Giọng nói</span>
           </button>
         </nav>
 
         <div className="tab-content">
           {activeTab === 'images' && <ImageLibrary />}
-          {activeTab === 'voices' && (
-            <div className="placeholder-content">
-              <MdRecordVoiceOver className="placeholder-icon" />
-              <h3>Thư viện giọng nói</h3>
-              <p>Tính năng này sẽ sớm được ra mắt</p>
-            </div>
-          )}
-          {activeTab === 'videos' && (
-            <div className="placeholder-content">
-              <MdVideoLibrary className="placeholder-icon" />
-              <h3>Thư viện video</h3>
-              <p>Tính năng này sẽ sớm được ra mắt</p>
-            </div>
-          )}
+          {activeTab === 'videos' && <VideoLibrary />}
+          {activeTab === 'audios' && <AudioLibrary />}
         </div>
       </div>
     </div>

@@ -35,7 +35,10 @@ const HeaderLayout = () => {
                             <Link to="/create-content">Tạo video</Link>
                         </div>
                         <div className='header-menu-item'>
-                            <Link to="/my-videos">Video của tôi</Link>
+                            <Link to="/my-videos">Video thuyết minh</Link>
+                        </div>
+                        <div className='header-menu-item'>
+                            <Link to="/my-deepfake-videos">Video Deepfake</Link>
                         </div>
                         <div className='header-menu-item'>
                             <Link to="/my-library">Thư viện của tôi</Link>
