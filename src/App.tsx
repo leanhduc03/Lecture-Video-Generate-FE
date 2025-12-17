@@ -23,12 +23,14 @@ import UserProfile from './pages/user/Profile';
 import CreateContent from './pages/user/CreateContent';
 import MyVideos from './pages/user/MyVideos';
 import MyLibrary from './pages/user/MyLibrary';
+import MyDeepfakeVideos from './pages/user/MyDeepfakeVideos';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminUserManagement from './pages/admin/UserManagement';
 import AdminProfile from './pages/admin/Profile';
 import AllVideos from './pages/admin/AllVideos';
+import MediaVideoManagement from './pages/admin/MediaVideoManagement';
 
 // Common & Error Pages
 import NotFound from './pages/NotFound';
@@ -93,6 +95,13 @@ function App() {
           </UserLayout>
         </ProtectedRoute>
       } />
+      <Route path="/my-deepfake-videos" element={
+        <ProtectedRoute>
+          <UserLayout>
+            <MyDeepfakeVideos />
+          </UserLayout>
+        </ProtectedRoute>
+      } />
       <Route path="/my-library" element={
         <ProtectedRoute>
           <UserLayout>
@@ -134,6 +143,13 @@ function App() {
         <ProtectedRoute requireAdmin>
           <AdminLayout>
             <SampleVideoManagement />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/media-videos" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <MediaVideoManagement />
           </AdminLayout>
         </ProtectedRoute>
       } />

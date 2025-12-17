@@ -558,6 +558,658 @@ $shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
   }
 }
 
+// Video Library Component
+.video-library {
+  padding: 30px;
+
+  .library-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 20px;
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+
+      .header-icon {
+        font-size: 40px;
+        color: $secondary-color;
+      }
+
+      h2 {
+        font-size: 24px;
+        color: $text-dark;
+        margin-bottom: 4px;
+      }
+
+      p {
+        color: $text-light;
+        font-size: 14px;
+      }
+    }
+
+    .upload-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: $secondary-color;
+      color: $white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      @include transition;
+
+      svg {
+        font-size: 20px;
+      }
+
+      &:hover {
+        background: darken($secondary-color, 10%);
+        box-shadow: $shadow-md;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  // Videos Grid
+  .videos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  // Video Card
+  .video-card {
+    position: relative;
+    background: $white;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid $border-color;
+    @include transition;
+
+    &:hover {
+      box-shadow: $shadow-md;
+      transform: translateY(-4px);
+    }
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      overflow: hidden;
+      cursor: pointer;
+      background: #000;
+
+      video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .video-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        @include transition;
+        gap: 10px;
+
+        .play-icon {
+          font-size: 48px;
+          color: $white;
+        }
+
+        span {
+          color: $white;
+          font-size: 16px;
+          font-weight: 500;
+        }
+      }
+
+      &:hover {
+        .video-overlay {
+          opacity: 1;
+        }
+      }
+    }
+
+    .video-info {
+      padding: 15px;
+
+      .video-name {
+        font-size: 15px;
+        font-weight: 500;
+        color: $text-dark;
+        margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .video-date {
+        font-size: 13px;
+        color: $text-light;
+      }
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba($danger-color, 0.9);
+      color: $white;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      @include transition;
+      z-index: 2;
+
+      svg {
+        font-size: 20px;
+      }
+
+      &:hover {
+        background: $danger-color;
+        transform: rotate(90deg);
+      }
+    }
+
+    &:hover .delete-btn {
+      opacity: 1;
+    }
+  }
+
+  // Preview Modal for videos
+  .preview-modal {
+    .preview-content {
+      video {
+        width: 100%;
+        max-height: 60vh;
+        display: block;
+        background: #000;
+      }
+    }
+  }
+}
+
+// Audio Library Component
+.audio-library {
+  padding: 30px;
+
+  .library-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 20px;
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+
+      .header-icon {
+        font-size: 40px;
+        color: #ff9800;
+      }
+
+      h2 {
+        font-size: 24px;
+        color: $text-dark;
+        margin-bottom: 4px;
+      }
+
+      p {
+        color: $text-light;
+        font-size: 14px;
+      }
+    }
+
+    .upload-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: #ff9800;
+      color: $white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      @include transition;
+
+      svg {
+        font-size: 20px;
+      }
+
+      &:hover {
+        background: darken(#ff9800, 10%);
+        box-shadow: $shadow-md;
+      }
+    }
+  }
+
+  .audios-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .audio-card {
+    position: relative;
+    background: $white;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid $border-color;
+    @include transition;
+
+    &:hover {
+      box-shadow: $shadow-md;
+      transform: translateY(-4px);
+    }
+
+    .audio-icon-wrapper {
+      position: relative;
+      height: 150px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+
+      .audio-icon {
+        font-size: 60px;
+        color: $white;
+        @include transition;
+      }
+
+      .audio-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        @include transition;
+
+        span {
+          color: $white;
+          font-size: 16px;
+          font-weight: 500;
+        }
+      }
+
+      &:hover {
+        .audio-icon {
+          transform: scale(1.1);
+        }
+
+        .audio-overlay {
+          opacity: 1;
+        }
+      }
+    }
+
+    .audio-info {
+      padding: 15px;
+
+      .audio-name {
+        font-size: 15px;
+        font-weight: 500;
+        color: $text-dark;
+        margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .audio-date {
+        font-size: 13px;
+        color: $text-light;
+        margin-bottom: 10px;
+      }
+
+      .reference-text-display {
+        position: relative;
+        padding: 10px;
+        background: #f5f5f5;
+        border-radius: 5px;
+        margin-top: 10px;
+
+        .reference-text {
+          font-size: 13px;
+          color: $text-dark;
+          margin: 0;
+          padding-right: 30px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+
+        .btn-edit-text {
+          position: absolute;
+          top: 5px;
+          right: 5px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          color: $secondary-color;
+          padding: 5px;
+          @include transition;
+
+          &:hover {
+            color: darken($secondary-color, 15%);
+          }
+        }
+      }
+
+      .reference-text-editor {
+        margin-top: 10px;
+
+        textarea {
+          width: 100%;
+          padding: 10px;
+          border: 1px solid $border-color;
+          border-radius: 5px;
+          font-size: 13px;
+          resize: vertical;
+          font-family: inherit;
+        }
+
+        .editor-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 10px;
+
+          button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            @include transition;
+
+            &.btn-save {
+              background: $primary-color;
+              color: $white;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+
+              &:hover {
+                background: darken($primary-color, 10%);
+              }
+            }
+
+            &.btn-cancel {
+              background: #6c757d;
+              color: $white;
+
+              &:hover {
+                background: darken(#6c757d, 10%);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba($danger-color, 0.9);
+      color: $white;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      @include transition;
+      z-index: 2;
+
+      svg {
+        font-size: 20px;
+      }
+
+      &:hover {
+        background: $danger-color;
+        transform: rotate(90deg);
+      }
+    }
+
+    &:hover .delete-btn {
+      opacity: 1;
+    }
+  }
+
+  // Upload Modal
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+
+    .modal-content {
+      position: relative;
+      max-width: 600px;
+      width: 100%;
+      background: $white;
+      border-radius: 12px;
+      padding: 30px;
+      animation: modalSlideIn 0.3s ease;
+
+      .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: transparent;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: $text-light;
+        @include transition;
+
+        &:hover {
+          color: $text-dark;
+          transform: rotate(90deg);
+        }
+      }
+
+      h3 {
+        font-size: 24px;
+        margin-bottom: 25px;
+        color: $text-dark;
+      }
+
+      .upload-form {
+        .form-group {
+          margin-bottom: 20px;
+
+          label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: $text-dark;
+          }
+
+          input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid $border-color;
+            border-radius: 5px;
+            cursor: pointer;
+          }
+
+          .file-selected {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 5px;
+          }
+
+          textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid $border-color;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+          }
+
+          small {
+            display: block;
+            margin-top: 5px;
+            color: $text-light;
+            font-size: 13px;
+          }
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 15px;
+          justify-content: flex-end;
+          margin-top: 25px;
+
+          button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            @include transition;
+
+            &.btn-cancel {
+              background: #6c757d;
+              color: $white;
+
+              &:hover {
+                background: darken(#6c757d, 10%);
+              }
+            }
+
+            &.btn-upload {
+              background: #ff9800;
+              color: $white;
+
+              &:hover:not(:disabled) {
+                background: darken(#ff9800, 10%);
+              }
+
+              &:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Preview Modal
+  .preview-modal {
+    .preview-content {
+      .audio-preview {
+        text-align: center;
+        padding: 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 8px 8px 0 0;
+
+        .preview-icon {
+          font-size: 80px;
+          color: $white;
+          margin-bottom: 20px;
+        }
+
+        audio {
+          width: 100%;
+          max-width: 400px;
+        }
+      }
+
+      .preview-info {
+        .reference-text-section {
+          margin: 20px 0;
+          padding: 15px;
+          background: #f5f5f5;
+          border-radius: 8px;
+
+          h4 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: $text-dark;
+          }
+
+          p {
+            font-size: 14px;
+            color: $text-dark;
+            margin: 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 // Responsive
 @media (max-width: 768px) {
   .my-library-page {

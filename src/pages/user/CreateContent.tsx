@@ -36,24 +36,24 @@ const CreateContent = () => {
           >
             Uploaded Slide to Video
           </button>
-          <button
+          {/* <button
             className={`tab ${activeTab === 'tts' ? 'active' : ''}`}
             onClick={() => setActiveTab('tts')}
           >
             Text-to-Speech
-          </button>
+          </button> */}
           <button
             className={`tab ${activeTab === 'deepfake' ? 'active' : ''}`}
             onClick={() => setActiveTab('deepfake')}
           >
             Deepfake Video
           </button>
-          <button
+          {/* <button
             className={`tab ${activeTab === 'fakelip' ? 'active' : ''}`}
             onClick={() => setActiveTab('fakelip')}
           >
             Fakelip Video
-          </button>
+          </button> */}
         </div>
 
         <div className="tab-content">

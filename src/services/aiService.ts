@@ -115,6 +115,27 @@ export const deepfakeVideoWithUrl = async (sourceUrl: string, targetFile: File):
   return deepfakeData.job_id;
 };
 
+// Hàm gửi yêu cầu deepfake với URL
+export const deepfakeVideoWithUrls = async (sourceUrl: string, targetUrl: string): Promise<string> => {
+  const deepfakeResponse = await fetch(`${API_URL}/upload/process-deepfake`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      source_url: sourceUrl,
+      target_url: targetUrl
+    })
+  });
+
+  if (!deepfakeResponse.ok) {
+    throw new Error('Failed to process deepfake');
+  }
+
+  const deepfakeData = await deepfakeResponse.json();
+  return deepfakeData.job_id;
+};
+
 // Hàm kiểm tra trạng thái xử lý deepfake qua backend
 export const checkDeepfakeStatus = async (jobId: string): Promise<{ status: string, result_url?: string }> => {
   try {

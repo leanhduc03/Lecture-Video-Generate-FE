@@ -17,6 +17,7 @@ const AdminSidebar: FC = () => {
     if (location.pathname.startsWith("/admin/users")) return "users";
     if (location.pathname.startsWith("/admin/videos")) return "videos";
     if (location.pathname.startsWith("/admin/sample-videos")) return "sample-videos";
+    if (location.pathname.startsWith("/admin/media-videos")) return "media-videos";
     return "dashboard";
   })();
 
@@ -34,7 +35,8 @@ const AdminSidebar: FC = () => {
           onClick={({ key }) => {
             if (key === "users") navigate("/admin/users");
             if (key === "videos") navigate("/admin/videos");
-            if (key === "sample-videos") navigate("/admin/sample-videos");
+            // if (key === "sample-videos") navigate("/admin/sample-videos");
+            if (key === "media-videos") navigate("/admin/media-videos");
           }}
           className="border-0 bg-transparent"
           items={[
@@ -48,11 +50,16 @@ const AdminSidebar: FC = () => {
               icon: <VideoCameraOutlined />,
               label: "Quản lý video",
             },
+            // {
+            //   key: "sample-videos",
+            //   icon: <PlayCircleOutlined />,
+            //   label: "Quản lý video mẫu",
+            // },
             {
-              key: "sample-videos",
+              key: "media-videos",
               icon: <PlayCircleOutlined />,
-              label: "Quản lý video mẫu",
-            }
+              label: "Quản lý Media Videos",
+            },
           ]}
         />
       </div>
