@@ -67,8 +67,7 @@ const ForgotPassword = () => {
         <div className="w-full max-w-md p-8 m-4">
             <div className="text-center mb-8">
                 <Link className="inline-flex items-center gap-2 text-2xl font-bold text-slate-800" to="#">
-                  <span className="material-icons-outlined text-primary text-4xl">movie</span>
-                  <span>VideoCreator AI</span>
+                  <span className="text-primary text-4xl">LectureStudio</span>
                 </Link>
             </div>
             <div className="bg-white p-8 rounded-lg shadow-md border border-slate-200">
@@ -79,7 +78,7 @@ const ForgotPassword = () => {
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="email">Email</label>
-                        <input className="block w-full rounded-md border-slate-300 bg-slate-50  text-slate-900 pl-10 py-3 focus:border-primary focus:ring-primary placeholder-slate-400" id="email" name="email" placeholder="you@example.com" required type="email" 
+                        <input className="block w-full rounded-md border-slate-300 bg-slate-50  text-slate-900 pl-10 py-3 focus:border-primary focus:ring-primary placeholder-slate-400" id="email" name="email" placeholder="lecture@gmail.com" required type="email" 
                           onChange={(e) => setEmail(e.target.value)} value={email}
                         />
                     </div>

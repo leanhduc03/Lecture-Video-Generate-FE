@@ -27,7 +27,7 @@ const Register = () => {
     setLoading(true);
     try {
       await register(values.username, values.email, values.password);
-      navigate(`/verify-email?username=${encodeURIComponent(values.username)}`);
+      navigate(`/verify-email?username=${encodeURIComponent(values.username)}&email=${encodeURIComponent(values.email)}`);
     } catch (err: any) {
       setError(
         err.response?.data?.detail || 
