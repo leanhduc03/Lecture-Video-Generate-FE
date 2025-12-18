@@ -20,7 +20,14 @@ const ForgotPassword = () => {
       await requestPasswordReset(email);
       setSuccess(true);
     } catch (err: any) {
-      setError('Đã xảy ra lỗi. Vui lòng thử lại sau.');
+      // Xử lý các loại lỗi khác nhau
+      if (err.response?.status === 503) {
+        setError('Hệ thống đang bị giới hạn gửi email. Vui lòng thử lại sau ít phút.');
+      } else if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else {
+        setError('Đã xảy ra lỗi. Vui lòng thử lại sau.');
+      }
     } finally {
       setLoading(false);
     }

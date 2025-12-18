@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Form, Input } from 'antd';
+import { Button, Form, Input, message } from 'antd';
 import { register } from '../services/authService';
-import { MdMovieEdit } from 'react-icons/md';
 import "./register.scss";
 
 const Register = () => {
@@ -28,7 +27,8 @@ const Register = () => {
     setLoading(true);
     try {
       await register(values.username, values.email, values.password);
-      navigate(`/verify-email?username=${encodeURIComponent(values.username)}&email=${encodeURIComponent(values.email)}`);
+      message.success('Đăng ký thành công! Bạn có thể đăng nhập ngay.');
+      navigate('/login');
     } catch (err: any) {
       setError(
         err.response?.data?.detail || 
@@ -43,7 +43,6 @@ const Register = () => {
     <div className="register-panel">
       <div className="register-panel__header">
         <div className="register-panel__brand">
-          <MdMovieEdit className="register-panel__icon" />
           <h1 className="register-panel__logo-text">LectureStudio</h1>
         </div>
         <h2 className="register-panel__title">Tạo tài khoản mới</h2>
