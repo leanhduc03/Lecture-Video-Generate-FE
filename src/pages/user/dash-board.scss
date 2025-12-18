@@ -187,6 +187,14 @@
   }
 }
 
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.animate-popUp {
+  animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
 .modal-dialog {
   background: var(--white);
   border-radius: 1rem;

@@ -103,3 +103,30 @@
   opacity: .6;
   box-shadow: none;
 }
+
+// Có thể xóa hoặc giữ lại các style custom nếu cần
+// Phần lớn đã được thay bằng Tailwind CSS
+
+// Custom scrollbar cho dropdown nếu cần
+.ant-dropdown-menu {
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgb(226, 232, 240);
+  padding: 0.5rem;
+
+  .ant-dropdown-menu-item {
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    transition: all 0.2s;
+
+    &:hover {
+      background-color: rgb(248, 250, 252);
+      color: rgb(124, 58, 237);
+    }
+
+    .anticon {
+      font-size: 16px;
+      margin-right: 0.5rem;
+    }
+  }
+}

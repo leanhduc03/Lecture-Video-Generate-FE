@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import "./login.scss";
+import { MdMovieEdit } from 'react-icons/md';
 import { Button, Form, Input } from 'antd';
 
 const Login = () => {
@@ -30,6 +31,7 @@ const Login = () => {
       <div className="login-panel">
       <div className="login-panel__header">
         <div className="login-panel__brand">
+          <MdMovieEdit className="login-panel__icon" />
           <h1 className="login-panel__logo-text">LectureStudio</h1>
         </div>
         <h2 className="login-panel__title">Đăng nhập tài khoản của bạn</h2>
