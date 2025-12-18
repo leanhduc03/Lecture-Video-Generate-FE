@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import '../../styles/combined-ai-feature.css';
 import { 
   generateSpeech, 
@@ -34,6 +35,7 @@ import { API_CONFIG, buildApiUrl } from '../../config/api';
 
 const SlideToVideo = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // Input content
   const [inputContent, setInputContent] = useState<string>('');
@@ -59,6 +61,11 @@ const SlideToVideo = () => {
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string>('');
   const [loadingVideos, setLoadingVideos] = useState(true);
   const [videoOptions, setVideoOptions] = useState<MediaVideo[]>([]);
+
+  // Deepfake video selection
+  const [deepfakeVideos, setDeepfakeVideos] = useState<MediaVideo[]>([]);
+  const [loadingDeepfakeVideos, setLoadingDeepfakeVideos] = useState(false);
+  const [videoSourceType, setVideoSourceType] = useState<'sample' | 'deepfake' | 'custom'>('sample');
 
   // Voice mode selection
   const [voiceMode, setVoiceMode] = useState<'preset' | 'clone'>('preset');
@@ -87,23 +94,33 @@ const SlideToVideo = () => {
 
   // Load sample videos from API
   useEffect(() => {
-    const loadSampleVideos = async () => {
+    const loadVideos = async () => {
       try {
         setLoadingVideos(true);
-        const response = await getMediaVideos('sample'); // Chỉ lấy video sample
-        setVideoOptions(response.videos);
-        if (response.videos.length > 0) {
-          setSelectedVideoUrl(response.videos[0].video_url);
+        setLoadingDeepfakeVideos(true);
+        
+        // Load sample videos
+        const sampleResponse = await getMediaVideos('sample');
+        setVideoOptions(sampleResponse.videos);
+        
+        // Load deepfake videos
+        const deepfakeResponse = await getMediaVideos('deepfake');
+        setDeepfakeVideos(deepfakeResponse.videos);
+        
+        // Set default
+        if (sampleResponse.videos.length > 0) {
+          setSelectedVideoUrl(sampleResponse.videos[0].video_url);
         }
       } catch (error) {
-        console.error('Error loading sample videos:', error);
-        setError('Không thể tải danh sách video mẫu');
+        console.error('Error loading videos:', error);
+        setError('Không thể tải danh sách video');
       } finally {
         setLoadingVideos(false);
+        setLoadingDeepfakeVideos(false);
       }
     };
 
-    loadSampleVideos();
+    loadVideos();
     loadMyAudios();
   }, []);
 
@@ -745,6 +762,20 @@ const SlideToVideo = () => {
     }
   };
 
+    // Thêm handler cho video source type (đặt sau các handler khác)
+  const handleVideoSourceTypeChange = (type: 'sample' | 'deepfake' | 'custom') => {
+    setVideoSourceType(type);
+    setSelectedVideoFile(null);
+    
+    if (type === 'sample' && videoOptions.length > 0) {
+      setSelectedVideoUrl(videoOptions[0].video_url);
+    } else if (type === 'deepfake' && deepfakeVideos.length > 0) {
+      setSelectedVideoUrl(deepfakeVideos[0].video_url);
+    } else if (type === 'custom') {
+      setSelectedVideoUrl('');
+    }
+  };
+
   // EDIT MODE
   if (editMode && editedSlideData.length > 0) {
     return (
@@ -1074,63 +1105,196 @@ const SlideToVideo = () => {
           <div style={{marginBottom: 20}}>
             <h4>Chọn Video Giảng Viên:</h4>
             
-            {loadingVideos ? (
-              <div style={{ padding: 15, background: '#f0f0f0', borderRadius: 4 }}>
-                ⏳ Đang tải danh sách video mẫu...
-              </div>
-            ) : videoOptions.length === 0 ? (
-              <div style={{ padding: 15, background: '#fff3cd', borderRadius: 4, color: '#856404' }}>
-                ⚠️ Chưa có video mẫu nào. Vui lòng liên hệ admin để thêm video mẫu.
-              </div>
-            ) : (
-              <>
-                <div>
-                  <label>
-                    <input 
-                      type="radio" 
-                      name="videoChoice" 
-                      checked={!selectedVideoFile}
-                      onChange={() => setSelectedVideoFile(null)}
-                    />
-                    Sử dụng video mẫu:
-                    <select 
-                      value={selectedVideoUrl} 
-                      onChange={handleVideoPresetChange}
-                      disabled={!!selectedVideoFile}
-                      style={{marginLeft: 10, padding: 5}}
-                    >
-                      {videoOptions.map(option => (
+            {/* Option 1: Sample Video */}
+            <div style={{marginBottom: 15}}>
+              <label style={{display: 'flex', alignItems: 'flex-start', gap: 10}}>
+                <input
+                  type="radio"
+                  name="videoChoice"
+                  checked={videoSourceType === 'sample'}
+                  onChange={() => handleVideoSourceTypeChange('sample')}
+                />
+                <div style={{flex: 1}}>
+                  <strong>Sử dụng video giảng viên mẫu:</strong>
+                  <select
+                    value={selectedVideoUrl}
+                    onChange={handleVideoPresetChange}
+                    disabled={videoSourceType !== 'sample' || loadingVideos}
+                    style={{
+                      marginTop: 8,
+                      width: '100%',
+                      padding: 8,
+                      opacity: videoSourceType === 'sample' ? 1 : 0.5
+                    }}
+                  >
+                    {loadingVideos ? (
+                      <option value="">Đang tải...</option>
+                    ) : videoOptions.length === 0 ? (
+                      <option value="">Không có video mẫu</option>
+                    ) : (
+                      videoOptions.map(option => (
                         <option key={option.id} value={option.video_url}>{option.name}</option>
-                      ))}
-                    </select>
-                  </label>
+                      ))
+                    )}
+                  </select>
                 </div>
-                <div style={{marginTop: 10}}>
-                  <label>
-                    <input 
-                      type="radio" 
-                      name="videoChoice" 
-                      checked={!!selectedVideoFile}
-                      onChange={() => {}}
-                    />
-                    Upload video tùy chỉnh:
-                    <input 
-                      type="file" 
-                      accept="video/*" 
-                      onChange={handleVideoFileChange}
-                      style={{marginLeft: 10}}
-                    />
-                  </label>
+              </label>
+            </div>
+
+            {/* Option 2: Deepfake Video */}
+            <div style={{marginBottom: 15}}>
+              <label style={{display: 'flex', alignItems: 'flex-start', gap: 10}}>
+                <input
+                  type="radio"
+                  name="videoChoice"
+                  checked={videoSourceType === 'deepfake'}
+                  onChange={() => handleVideoSourceTypeChange('deepfake')}
+                />
+                <div style={{flex: 1}}>
+                  <strong>Sử dụng video deepfake đã tạo:</strong>
+                  <select
+                    value={selectedVideoUrl}
+                    onChange={(e) => setSelectedVideoUrl(e.target.value)}
+                    disabled={videoSourceType !== 'deepfake' || loadingDeepfakeVideos}
+                    style={{
+                      marginTop: 8,
+                      width: '100%',
+                      padding: 8,
+                      opacity: videoSourceType === 'deepfake' ? 1 : 0.5
+                    }}
+                  >
+                    {loadingDeepfakeVideos ? (
+                      <option value="">Đang tải...</option>
+                    ) : deepfakeVideos.length === 0 ? (
+                      <option value="">Chưa có video deepfake</option>
+                    ) : (
+                      deepfakeVideos.map(option => (
+                        <option key={option.id} value={option.video_url}>
+                          {option.name || `Video ${option.id}`}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  
+                  {/* Thông báo và nút dẫn đến trang tạo deepfake */}
+                  {videoSourceType === 'deepfake' && deepfakeVideos.length === 0 && (
+                    <div style={{
+                      marginTop: 10,
+                      padding: 12,
+                      background: '#fff3cd',
+                      borderRadius: 6,
+                      border: '1px solid #ffc107'
+                    }}>
+                      <p style={{
+                        margin: 0,
+                        marginBottom: 10,
+                        fontSize: '14px',
+                        color: '#856404',
+                        fontStyle: 'italic'
+                      }}>
+                        💡 Bạn chưa có video deepfake nào. Tạo video ghép mặt mới ngay!
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/create-content', { state: { activeTab: 'deepfake' } })}
+                        style={{
+                          padding: '8px 20px',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 'bold',
+                          boxShadow: '0 2px 8px rgba(102, 126, 234, 0.4)',
+                          transition: 'all 0.3s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.6)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.4)';
+                        }}
+                      >
+                        <span>🎭</span>
+                        <span>Tạo video deepfake ngay</span>
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Hiện button khi đã có video nhưng vẫn muốn tạo thêm */}
+                  {videoSourceType === 'deepfake' && deepfakeVideos.length > 0 && (
+                    <div style={{marginTop: 10}}>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/create-content', { state: { activeTab: 'deepfake' } })}
+                        style={{
+                          padding: '6px 16px',
+                          background: '#6c757d',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          transition: 'background 0.3s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = '#5a6268'}
+                        onMouseOut={(e) => e.currentTarget.style.background = '#6c757d'}
+                      >
+                        ➕ Tạo video deepfake mới
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </>
-            )}
-            
+              </label>
+            </div>
+
+            {/* Option 3: Custom Upload */}
+            <div style={{marginBottom: 15}}>
+              <label style={{display: 'flex', alignItems: 'flex-start', gap: 10}}>
+                <input
+                  type="radio"
+                  name="videoChoice"
+                  checked={videoSourceType === 'custom'}
+                  onChange={() => handleVideoSourceTypeChange('custom')}
+                />
+                <div style={{flex: 1}}>
+                  <strong>Upload video tùy chỉnh:</strong>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoFileChange}
+                    disabled={videoSourceType !== 'custom'}
+                    style={{
+                      marginTop: 8,
+                      opacity: videoSourceType === 'custom' ? 1 : 0.5
+                    }}
+                  />
+                </div>
+              </label>
+            </div>
+
+            {/* Video Preview */}
             {(selectedVideoUrl || selectedVideoFile) && (
-              <video 
-                src={selectedVideoUrl || (selectedVideoFile ? URL.createObjectURL(selectedVideoFile) : '')} 
-                controls 
-                style={{width: '100%', maxWidth: 400, marginTop: 10, borderRadius: 4}}
-              />
+              <div style={{
+                marginTop: 15,
+                padding: 15,
+                background: '#f5f5f5',
+                borderRadius: 8,
+                border: '2px solid #e0e0e0'
+              }}>
+                <h5 style={{marginBottom: 10}}>Preview:</h5>
+                <video
+                  src={selectedVideoUrl || (selectedVideoFile ? URL.createObjectURL(selectedVideoFile) : '')}
+                  controls
+                  style={{width: '100%', maxWidth: 400, borderRadius: 4}}
+                />
+              </div>
             )}
           </div>
 
