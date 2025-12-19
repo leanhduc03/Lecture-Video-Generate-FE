@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Form, Input, message } from 'antd';
+import { MdMovieEdit } from 'react-icons/md';
 import { register } from '../services/authService';
 import "./register.scss";
 
@@ -43,6 +44,7 @@ const Register = () => {
     <div className="register-panel">
       <div className="register-panel__header">
         <div className="register-panel__brand">
+          <MdMovieEdit className="register-panel__icon" />
           <h1 className="register-panel__logo-text">LectureStudio</h1>
         </div>
         <h2 className="register-panel__title">Tạo tài khoản mới</h2>

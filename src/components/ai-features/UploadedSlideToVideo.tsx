@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import '../../styles/combined-ai-feature.css';
+import '../../styles/uploaded-slide-to-video.scss'
 import {
   uploadVideoForDeepfake,
   uploadImageForDeepfake,
@@ -25,6 +25,7 @@ import {
 import { getSampleVideos, SampleVideo } from '../../services/sampleVideoService';
 import { getMyAudios, uploadReferenceAudio, deleteUploadedAudio, UploadedAudio } from '../../services/uploadedAudioService';
 import { getMediaVideos, MediaVideo } from '../../services/mediaVideoService';
+import '../../styles/uploaded-slide-to-video.scss';
 
 const UploadedSlideToVideo = () => {
   const { user } = useAuth();
@@ -1377,57 +1378,6 @@ const handleVideoSourceTypeChange = (type: 'sample' | 'deepfake' | 'custom') => 
                         </p>
                       </div>
                     )}
-
-                    {/* {referenceAudioUrl && audioMode === 'upload' && (
-                      <div style={{
-                        marginTop: 10,
-                        padding: 15,
-                        background: '#e8f5e9',
-                        borderRadius: 4,
-                        border: '2px solid #4caf50'
-                      }}>
-                        <p style={{ color: '#2e7d32', marginBottom: 10, fontWeight: 'bold' }}>
-                          ✓ Đã upload thành công!
-                        </p>
-                        <audio
-                          src={referenceAudioUrl}
-                          controls
-                          style={{ width: '100%', marginBottom: 10 }}
-                        />
-                        {referenceText && (
-                          <div style={{
-                            padding: 10,
-                            background: 'white',
-                            borderRadius: 4,
-                            border: '1px solid #c8e6c9'
-                          }}>
-                            <strong style={{ color: '#2e7d32' }}>Reference Text:</strong>
-                            <p style={{ marginTop: 5, fontSize: '13px', color: '#333' }}>
-                              {referenceText}
-                            </p>
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setReferenceAudioUrl('');
-                            setReferenceText('');
-                          }}
-                          style={{
-                            marginTop: 10,
-                            padding: '6px 12px',
-                            background: '#f44336',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: 4,
-                            cursor: 'pointer',
-                            fontSize: '13px'
-                          }}
-                        >
-                           Upload lại Audio
-                        </button>
-                      </div>
-                    )} */}
                   </div>
                 ) : (
                   <div className="existing-audios-grid" style={{
