@@ -34,7 +34,7 @@ const Dashboard = () => {
   return (
     <main className="flex-grow w-full max-w-7xl mx-auto px-4 md:px-8 lg:px-12 overflow-hidden">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 ">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-2">
         <div>
           <h1 className="text-[26px] font-bold text-slate-900 tracking-tight">Tổng quan</h1>
           <p className="text-slate-600 mt-1 text-[15px]">
