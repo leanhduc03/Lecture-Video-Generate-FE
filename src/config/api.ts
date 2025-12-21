@@ -1,9 +1,9 @@
 export const API_CONFIG = {
   // Base URLs
-  // BASE_URL: 'http://localhost:8000/api/v1',
+  BASE_URL: 'http://localhost:8000/api/v1',
   //BASE_URL: 'http://localhost:9000/api/v1',
   // BASE_URL: '/api/v1',
-  BASE_URL: 'http://36.50.135.165:9000/api/v1',
+  // BASE_URL: 'http://36.50.135.165:9000/api/v1',
   // Ngrok URLs for AI services
   TTS_NGROK_URL: 'https://byron-unswung-clarita.ngrok-free.dev',
   DEEPFAKE_NGROK_URL: 'https://plushly-renounceable-catherina.ngrok-free.dev',

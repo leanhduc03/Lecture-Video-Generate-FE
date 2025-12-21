@@ -30,6 +30,16 @@
                     borderRadius: {
                         DEFAULT: "0.5rem",
                     },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
+                        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
                 },
             },
         };
@@ -104,23 +114,42 @@
 </a>
 </nav>
 </div>
-<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fade-in-up">
-<div class="space-y-1">
-<div class="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold">
-<span class="material-symbols-rounded text-xl">check_circle</span>
-                    Đã upload thành công
-                </div>
-<div class="text-sm text-slate-600 dark:text-slate-400">
-<p><span class="font-medium">Tên file:</span> Brown and White Minimalist Law Firm Presentation</p>
-<p><span class="font-medium">Tổng số slides:</span> 11</p>
+<div class="w-full relative group cursor-pointer animate-fade-in-up">
+<div class="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl opacity-20 group-hover:opacity-60 transition duration-500 blur-sm"></div>
+<div class="relative w-full bg-surface-light dark:bg-surface-dark border-2 border-dashed border-slate-300 dark:border-slate-700 group-hover:border-primary dark:group-hover:border-primary/50 rounded-xl p-8 sm:p-12 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-300">
+<input accept=".ppt,.pptx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" type="file"/>
+<div class="flex flex-col items-center justify-center gap-6">
+<div class="relative">
+<div class="absolute inset-0 bg-primary/20 rounded-full animate-ping opacity-75 hidden group-hover:block"></div>
+<div class="w-24 h-24 bg-purple-50 dark:bg-purple-900/30 text-primary rounded-full flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform duration-300 shadow-inner">
+<span class="material-symbols-rounded text-6xl">cloud_upload</span>
 </div>
 </div>
-<button class="flex items-center gap-2 bg-[#0ea5e9] hover:bg-[#0284c7] text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors">
-<span class="material-symbols-rounded text-sm">edit_document</span>
-                Nhập script thuyết trình
-            </button>
+<div class="space-y-3 max-w-lg mx-auto">
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">Tải lên Slide PowerPoint</h3>
+<p class="text-slate-500 dark:text-slate-400 text-base">
+                            Kéo thả file vào khu vực này để bắt đầu chuyển đổi.<br class="hidden sm:block"/>
+                            Hỗ trợ định dạng 
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-500/10">PPT</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-500/10">PPTX</span>
+</p>
 </div>
-<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
+<div class="relative z-20 pointer-events-none">
+<button class="px-6 py-3 bg-primary hover:bg-violet-600 text-white font-semibold rounded-full shadow-lg shadow-purple-500/30 transition-all transform flex items-center gap-2 group-hover:shadow-purple-500/50">
+<span class="material-symbols-rounded">folder_open</span>
+                            Chọn tệp từ máy tính
+                        </button>
+</div>
+<div class="flex items-center gap-4 text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider mt-2">
+<span class="flex items-center gap-1"><span class="material-symbols-rounded text-sm">hard_drive</span> Max 50MB</span>
+<span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+<span class="flex items-center gap-1"><span class="material-symbols-rounded text-sm">lock</span> Bảo mật</span>
+</div>
+</div>
+</div>
+</div>
+<div class="opacity-50 pointer-events-none select-none filter blur-[1px] transition-all">
+<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden mb-8">
 <div class="p-6 space-y-6">
 <div class="flex items-center gap-2 border-b border-border-light dark:border-border-dark pb-4">
 <span class="bg-purple-100 dark:bg-purple-900/50 text-primary p-1 rounded-md material-symbols-rounded">person_play</span>
@@ -246,15 +275,16 @@
 </div>
 </div>
 </div>
-<div class="flex items-center gap-4 pt-4">
+<div class="flex items-center gap-4 pt-8">
 <button class="flex-1 sm:flex-none bg-secondary hover:bg-emerald-600 text-white px-6 py-3 rounded-md shadow-lg shadow-emerald-500/30 font-semibold flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5">
 <span class="material-symbols-rounded">movie_filter</span>
-                Tạo Video Thuyết Trình
-            </button>
+                    Tạo Video Thuyết Trình
+                </button>
 <button class="px-6 py-3 bg-slate-500 hover:bg-slate-600 text-white rounded-md font-medium shadow-sm flex items-center gap-2 transition-colors">
 <span class="material-symbols-rounded text-lg">restart_alt</span>
-                Reset
-            </button>
+                    Reset
+                </button>
+</div>
 </div>
 </main>
 <script>

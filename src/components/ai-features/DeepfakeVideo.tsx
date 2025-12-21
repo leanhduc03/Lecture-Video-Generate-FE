@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { deepfakeVideoWithUrls, checkDeepfakeStatus } from '../../services/aiService';
-import { getMyImages, uploadSourceImage, deleteUploadedImage, UploadedImage } from '../../services/uploadedImageService';
-import { getMediaVideos, uploadMediaVideoFile, createMediaVideo, deleteMediaVideo, saveDeepfakeVideo, MediaVideo } from '../../services/mediaVideoService';
+import { getMyImages, uploadSourceImage, UploadedImage } from '../../services/uploadedImageService';
+import { getMediaVideos, uploadMediaVideoFile, createMediaVideo, saveDeepfakeVideo, MediaVideo } from '../../services/mediaVideoService';
 import '../../styles/deepfake.scss';
 
 const DeepfakeVideo = () => {
@@ -30,6 +30,12 @@ const DeepfakeVideo = () => {
   const [isSavingVideo, setIsSavingVideo] = useState<boolean>(false);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
+  // Video player states
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+
   useEffect(() => {
     loadMyImages();
     loadMyVideos();
@@ -53,7 +59,6 @@ const DeepfakeVideo = () => {
     }
   };
 
-  // Xử lý khi người dùng chọn ảnh nguồn từ máy
   const handleSourceChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -79,7 +84,6 @@ const DeepfakeVideo = () => {
     }
   };
 
-  // Xử lý khi người dùng chọn video đích từ máy
   const handleTargetChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -113,53 +117,16 @@ const DeepfakeVideo = () => {
     }
   };
 
-  // Xử lý khi người dùng chọn ảnh từ danh sách đã upload
-  const handleSelectExistingImage = (imageUrl: string, preview: string) => {
+  const handleSelectExistingImage = (imageUrl: string) => {
     setSelectedImageUrl(imageUrl);
-    setSourcePreview(preview);
+    setSourcePreview(imageUrl);
   };
 
-  // Xử lý khi người dùng chọn video từ danh sách đã upload
-  const handleSelectExistingVideo = (videoUrl: string, preview: string) => {
+  const handleSelectExistingVideo = (videoUrl: string) => {
     setSelectedVideoUrl(videoUrl);
-    setTargetPreview(preview);
+    setTargetPreview(videoUrl);
   };
 
-  // Xử lý xóa ảnh
-  const handleDeleteImage = async (imageId: number) => {
-    if (!window.confirm('Bạn có chắc muốn xóa ảnh này?')) return;
-    
-    try {
-      await deleteUploadedImage(imageId);
-      await loadMyImages();
-      if (myImages.find(img => img.id === imageId)?.image_url === selectedImageUrl) {
-        setSelectedImageUrl(null);
-        setSourcePreview(null);
-      }
-    } catch (err) {
-      setError('Không thể xóa ảnh. Vui lòng thử lại.');
-      console.error('Delete error:', err);
-    }
-  };
-
-  // Xử lý xóa video
-  const handleDeleteVideo = async (videoId: number) => {
-    if (!window.confirm('Bạn có chắc muốn xóa video này?')) return;
-    
-    try {
-      await deleteMediaVideo(videoId);
-      await loadMyVideos();
-      if (myVideos.find(vid => vid.id === videoId)?.video_url === selectedVideoUrl) {
-        setSelectedVideoUrl(null);
-        setTargetPreview(null);
-      }
-    } catch (err) {
-      setError('Không thể xóa video. Vui lòng thử lại.');
-      console.error('Delete error:', err);
-    }
-  };
-
-  // Gửi yêu cầu deepfake
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedImageUrl || !selectedVideoUrl) {
@@ -185,7 +152,6 @@ const DeepfakeVideo = () => {
     }
   };
 
-  // ⭐ Tự động lưu video khi tạo xong
   useEffect(() => {
     const autoSaveVideo = async () => {
       if (resultVideo && !savedSuccess && !isSavingVideo) {
@@ -205,7 +171,6 @@ const DeepfakeVideo = () => {
     autoSaveVideo();
   }, [resultVideo, savedSuccess, isSavingVideo]);
 
-  // Kiểm tra trạng thái xử lý định kỳ
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
@@ -251,7 +216,7 @@ const DeepfakeVideo = () => {
       const loadingMessage = document.createElement('div');
       loadingMessage.className = 'download-loading';
       loadingMessage.textContent = 'Đang chuẩn bị tải xuống...';
-      document.querySelector('.result-container')?.appendChild(loadingMessage);
+      document.querySelector('.result-section')?.appendChild(loadingMessage);
 
       const response = await fetch(resultVideo);
       const blob = await response.blob();
@@ -275,204 +240,356 @@ const DeepfakeVideo = () => {
     }
   };
 
+  // Video player handlers
+  const handlePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (videoRef.current) {
+      const progressBar = e.currentTarget;
+      const clickPosition = (e.clientX - progressBar.getBoundingClientRect().left) / progressBar.offsetWidth;
+      videoRef.current.currentTime = clickPosition * duration;
+    }
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Reset video khi đổi source
+  React.useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [selectedVideoUrl, targetFile]);
+
   return (
-    <div className="deepfake-container">
-      <h2>Tạo Video Deepfake</h2>
-      <p>Chọn ảnh của bạn và video đích để tạo deepfake</p>
-
-      <form onSubmit={handleSubmit} className="deepfake-form">
-        <div className="upload-section">
-          {/* Source Image Section */}
-          <div className="upload-box">
-            <label>Ảnh nguồn (khuôn mặt của bạn)</label>
-            
-            <div className="source-mode-selector">
-              <button
-                type="button"
-                className={sourceMode === 'upload' ? 'active' : ''}
-                onClick={() => setSourceMode('upload')}
-              >
-                Upload ảnh mới
-              </button>
-              <button
-                type="button"
-                className={sourceMode === 'existing' ? 'active' : ''}
-                onClick={() => setSourceMode('existing')}
-              >
-                Chọn ảnh đã có
-              </button>
-            </div>
-
-            {sourceMode === 'upload' ? (
-              <>
-                <input
-                  type="file"
-                  id="source-image"
-                  accept="image/*"
-                  onChange={handleSourceChange}
-                  disabled={isUploadingSource}
-                />
-                {isUploadingSource && <p className="upload-status">Đang upload ảnh...</p>}
-                {sourcePreview && (
-                  <div className="preview">
-                    <img src={sourcePreview} alt="Source Preview" />
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="existing-images-grid">
-                {myImages.length === 0 ? (
-                  <p>Bạn chưa có ảnh nào. Hãy upload ảnh mới!</p>
-                ) : (
-                  myImages.map((image) => (
-                    <div
-                      key={image.id}
-                      className={`image-item ${selectedImageUrl === image.image_url ? 'selected' : ''}`}
-                    >
-                      <img
-                        src={image.image_url}
-                        alt={image.name}
-                        onClick={() => handleSelectExistingImage(image.image_url, image.image_url)}
-                      />
-                      <button
-                        type="button"
-                        className="delete-image-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteImage(image.id);
-                        }}
-                      >
-                        ×
-                      </button>
-                      <span className="image-name">{image.name}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Target Video Section */}
-          <div className="upload-box">
-            <label>Video đích (video cần thay khuôn mặt)</label>
-            
-            <div className="source-mode-selector">
-              <button
-                type="button"
-                className={targetMode === 'upload' ? 'active' : ''}
-                onClick={() => setTargetMode('upload')}
-              >
-                Upload video mới
-              </button>
-              <button
-                type="button"
-                className={targetMode === 'existing' ? 'active' : ''}
-                onClick={() => setTargetMode('existing')}
-              >
-                Chọn video đã có
-              </button>
-            </div>
-
-            {targetMode === 'upload' ? (
-              <>
-                <input
-                  type="file"
-                  id="target-video"
-                  accept="video/*"
-                  onChange={handleTargetChange}
-                  disabled={isUploadingTarget}
-                />
-                {isUploadingTarget && <p className="upload-status">Đang upload video...</p>}
-                {targetPreview && (
-                  <div className="preview">
-                    <video src={targetPreview} controls width="250"></video>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="existing-videos-grid">
-                {myVideos.length === 0 ? (
-                  <p>Bạn chưa có video nào. Hãy upload video mới!</p>
-                ) : (
-                  myVideos.map((video) => (
-                    <div
-                      key={video.id}
-                      className={`video-item ${selectedVideoUrl === video.video_url ? 'selected' : ''}`}
-                    >
-                      <video
-                        src={video.video_url}
-                        onClick={() => handleSelectExistingVideo(video.video_url, video.video_url)}
-                      />
-                      <button
-                        type="button"
-                        className="delete-video-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteVideo(video.id);
-                        }}
-                      >
-                        ×
-                      </button>
-                      <span className="video-name">{video.name}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+    <div className="deepfake-video">
+      {error && (
+        <div className="error-message">
+          <span className="material-symbols-outlined">error</span>
+          {error}
         </div>
+      )}
 
-        {error && <div className="error-message">{error}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="deepfake-content">
+          <div className="selection-grid">
+            {/* Source Image Section */}
+            <div className="selection-column">
+              <div className="column-header">
+                <div className="header-title">
+                  <span className="step-number">1</span>
+                  <h3>Ảnh nguồn (khuôn mặt)</h3>
+                </div>
+                <span className="file-types">JPG, PNG</span>
+              </div>
 
-        <div className="button-container">
-          <button
-            type="submit"
-            className="deepfake-button"
-            disabled={isLoading || !selectedImageUrl || !selectedVideoUrl}
-          >
-            {isLoading ? 'Đang xử lý...' : 'Tạo Video Deepfake'}
-          </button>
+              <div className="selection-modes">
+                <button
+                  type="button"
+                  className={`mode-btn ${sourceMode === 'upload' ? 'active' : ''}`}
+                  onClick={() => setSourceMode('upload')}
+                >
+                  <span className="material-symbols-outlined">upload</span>
+                  Tải ảnh lên
+                </button>
+                <button
+                  type="button"
+                  className={`mode-btn ${sourceMode === 'existing' ? 'active' : ''}`}
+                  onClick={() => setSourceMode('existing')}
+                >
+                  <span className="material-symbols-outlined">collections</span>
+                  Chọn từ thư viện
+                </button>
+              </div>
+
+              {sourceMode === 'upload' ? (
+                <div className="upload-zone">
+                  <input
+                    type="file"
+                    id="source-image"
+                    accept="image/*"
+                    onChange={handleSourceChange}
+                    disabled={isUploadingSource}
+                  />
+                  <label htmlFor="source-image" className="upload-label">
+                    {isUploadingSource ? (
+                      <>
+                        <span className="material-symbols-outlined spinning">progress_activity</span>
+                        <span>Đang upload...</span>
+                      </>
+                    ) : sourcePreview ? (
+                      <div className="preview-container">
+                        <img src={sourcePreview} alt="Source Preview" />
+                        <div className="preview-overlay">
+                          <span className="material-symbols-outlined">check_circle</span>
+                          <p>Đã chọn ảnh</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined">add_photo_alternate</span>
+                        <p>Click để chọn ảnh</p>
+                      </>
+                    )}
+                  </label>
+                </div>
+              ) : (
+                <div className="media-grid">
+                  {myImages.length === 0 ? (
+                    <div className="empty-state">
+                      <span className="material-symbols-outlined">image</span>
+                      <p>Chưa có ảnh nào</p>
+                      <button
+                        type="button"
+                        onClick={() => setSourceMode('upload')}
+                        className="switch-mode-btn"
+                      >
+                        Upload ảnh đầu tiên
+                      </button>
+                    </div>
+                  ) : (
+                    myImages.map((image) => (
+                      <div
+                        key={image.id}
+                        className={`media-item ${selectedImageUrl === image.image_url ? 'selected' : ''}`}
+                        onClick={() => handleSelectExistingImage(image.image_url)}
+                      >
+                        <img src={image.image_url} alt={image.name} />
+                        {selectedImageUrl === image.image_url && (
+                          <div className="selected-badge">
+                            <span className="material-symbols-outlined">check_circle</span>
+                            Đã chọn
+                          </div>
+                        )}
+                        <div className="media-name">{image.name}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Target Video Section */}
+            <div className="selection-column">
+              <div className="column-header">
+                <div className="header-title">
+                  <span className="step-number">2</span>
+                  <h3>Video đích (cần thay mặt)</h3>
+                </div>
+                <span className="file-types">MP4, MOV</span>
+              </div>
+
+              <div className="selection-modes">
+                <button
+                  type="button"
+                  className={`mode-btn ${targetMode === 'upload' ? 'active' : ''}`}
+                  onClick={() => setTargetMode('upload')}
+                >
+                  <span className="material-symbols-outlined">movie</span>
+                  Tải video lên
+                </button>
+                <button
+                  type="button"
+                  className={`mode-btn ${targetMode === 'existing' ? 'active' : ''}`}
+                  onClick={() => setTargetMode('existing')}
+                >
+                  <span className="material-symbols-outlined">video_library</span>
+                  Video có sẵn
+                </button>
+              </div>
+
+              {targetMode === 'upload' ? (
+                <div className="upload-zone">
+                  <input
+                    type="file"
+                    id="target-video"
+                    accept="video/*"
+                    onChange={handleTargetChange}
+                    disabled={isUploadingTarget}
+                  />
+                  <label htmlFor="target-video" className="upload-label">
+                    {isUploadingTarget ? (
+                      <>
+                        <span className="material-symbols-outlined spinning">progress_activity</span>
+                        <span>Đang upload...</span>
+                      </>
+                    ) : targetPreview ? (
+                      <div className="preview-container video-preview">
+                        <video
+                          ref={videoRef}
+                          src={targetPreview}
+                          onTimeUpdate={handleTimeUpdate}
+                          onLoadedMetadata={handleLoadedMetadata}
+                          onEnded={() => setIsPlaying(false)}
+                        />
+                        {!isPlaying && (
+                          <div className="play-overlay" onClick={handlePlayPause}>
+                            <button type="button">
+                              <span className="material-symbols-outlined">play_circle</span>
+                            </button>
+                          </div>
+                        )}
+                        <div className="video-controls">
+                          <button type="button" className="control-button" onClick={handlePlayPause}>
+                            <span className="material-symbols-outlined">
+                              {isPlaying ? 'pause' : 'play_arrow'}
+                            </span>
+                          </button>
+                          <div className="progress-bar" onClick={handleProgressClick}>
+                            <div
+                              className="progress"
+                              style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                            ></div>
+                          </div>
+                          <span className="time-display">
+                            {formatTime(currentTime)} / {formatTime(duration)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined">videocam</span>
+                        <p>Click để chọn video</p>
+                      </>
+                    )}
+                  </label>
+                </div>
+              ) : (
+                <div className="media-grid">
+                  {myVideos.length === 0 ? (
+                    <div className="empty-state">
+                      <span className="material-symbols-outlined">video_library</span>
+                      <p>Chưa có video nào</p>
+                      <button
+                        type="button"
+                        onClick={() => setTargetMode('upload')}
+                        className="switch-mode-btn"
+                      >
+                        Upload video đầu tiên
+                      </button>
+                    </div>
+                  ) : (
+                    myVideos.map((video) => (
+                      <div
+                        key={video.id}
+                        className={`media-item video-item ${selectedVideoUrl === video.video_url ? 'selected' : ''}`}
+                        onClick={() => handleSelectExistingVideo(video.video_url)}
+                      >
+                        <video src={video.video_url} />
+                        <div className="video-play-icon">
+                          <span className="material-symbols-outlined">play_circle</span>
+                        </div>
+                        {selectedVideoUrl === video.video_url && (
+                          <div className="selected-badge">
+                            <span className="material-symbols-outlined">check_circle</span>
+                            Đã chọn
+                          </div>
+                        )}
+                        <div className="media-name">{video.name}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="action-section">
+            <button
+              type="submit"
+              className="create-deepfake-btn"
+              disabled={isLoading || !selectedImageUrl || !selectedVideoUrl}
+            >
+              <span className="material-symbols-outlined">auto_fix_high</span>
+              {isLoading ? 'Đang xử lý...' : 'Tạo Video Deepfake'}
+            </button>
+            <p className="processing-note">Dự kiến mất khoảng 2-5 phút cho mỗi phút video</p>
+          </div>
         </div>
       </form>
 
       {jobId && !resultVideo && (
-        <div className="processing-message">
-          <p>{processingProgress}</p>
-          <div className="loading-spinner"></div>
-          <p className="processing-note">Quá trình này có thể mất vài phút tùy thuộc vào độ dài của video</p>
+        <div className="processing-status">
+          <div className="status-icon">
+            <span className="material-symbols-outlined spinning">progress_activity</span>
+          </div>
+          <h3>{processingProgress}</h3>
+          <p className="status-note">
+            Quá trình này có thể mất vài phút tùy thuộc vào độ dài của video
+          </p>
         </div>
       )}
 
       {resultVideo && (
-        <div className="result-container">
-          <h3>Video Deepfake của bạn</h3>
-          <video src={resultVideo} controls width="100%"></video>
-          
+        <div className="result-section">
+          <div className="result-header">
+            <span className="material-symbols-outlined">check_circle</span>
+            <h3>Video Deepfake hoàn chỉnh</h3>
+          </div>
+
           {isSavingVideo && (
             <div className="saving-message">
-              🔄 Đang lưu video vào thư viện...
+              <span className="material-symbols-outlined spinning">progress_activity</span>
+              Đang lưu video vào thư viện...
             </div>
           )}
-          
+
           {savedSuccess && !isSavingVideo && (
             <div className="success-message">
-              ✓ Đã lưu video vào thư viện của bạn!
+              <span className="material-symbols-outlined">check_circle</span>
+              Đã lưu video vào thư viện của bạn!
             </div>
           )}
-          
+
+          <div className="result-video">
+            <video src={resultVideo} controls />
+          </div>
+
           <div className="result-actions">
-            <button onClick={handleDownload} className="download-button">
-              📥 Tải video xuống
+            <button onClick={handleDownload} className="download-btn">
+              <span className="material-symbols-outlined">download</span>
+              Tải video xuống
             </button>
             <button
-              className="new-deepfake-button"
               onClick={() => {
                 setJobId(null);
                 setResultVideo(null);
                 setSavedSuccess(false);
+                setSourceFile(null);
+                setSourcePreview(null);
+                setSelectedImageUrl(null);
+                setTargetFile(null);
+                setTargetPreview(null);
+                setSelectedVideoUrl(null);
               }}
+              className="new-deepfake-btn"
             >
-              🎬 Tạo Deepfake mới
+              <span className="material-symbols-outlined">add</span>
+              Tạo Deepfake mới
             </button>
           </div>
         </div>

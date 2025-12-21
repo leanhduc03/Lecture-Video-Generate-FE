@@ -36,7 +36,7 @@ const CreateContent = () => {
             onClick={() => setActiveTab('slide')}
           >
             <span className="material-symbols-outlined icon">slideshow</span>
-            Slide to Video
+            Text to Video
           </button>
 
           <button
@@ -44,7 +44,7 @@ const CreateContent = () => {
             onClick={() => setActiveTab('uploadedslide')}
           >
             <span className="material-symbols-outlined icon">upload_file</span>
-            Uploaded Slide to Video
+            Slide to Video
           </button>
 
           <button
@@ -53,7 +53,6 @@ const CreateContent = () => {
           >
             <span className="material-symbols-outlined icon">video_camera_front</span>
             Deepfake Video
-            <span className="badge">BETA</span>
           </button>
         </div>
 
