@@ -60,7 +60,7 @@ export const generateSlidesFromContent = async (
  */
 export const downloadPptxFile = async (filename: string): Promise<Blob> => {
   const response = await fetch(`${API_BASE_URL}/slides/download/${filename}`);
-  
+
   if (!response.ok) {
     throw new Error(`Không thể tải file PPTX: ${response.status}`);
   }
@@ -120,7 +120,7 @@ export const fetchSlideMetadata = async (
   jsonFilename: string
 ): Promise<{ success: boolean; data?: any }> => {
   const response = await fetch(`${API_BASE_URL}/slides/metadata/${jsonFilename}`);
-  
+
   if (!response.ok) {
     throw new Error('Không thể lấy metadata');
   }
@@ -169,12 +169,12 @@ export const saveSlideMetadata = async (
 export const uploadAudioFile = async (file: File): Promise<{ success: boolean; audio_url?: string }> => {
   const formData = new FormData();
   formData.append('file', file);
-  
+
   const response = await fetch(`${API_BASE_URL}/upload/upload-audio`, {
     method: 'POST',
     body: formData
   });
-  
+
   const result = await response.json();
   return result;
 };
@@ -185,12 +185,12 @@ export const uploadAudioFile = async (file: File): Promise<{ success: boolean; a
 export const uploadVideoFile = async (file: File): Promise<{ success: boolean; video_url?: string }> => {
   const formData = new FormData();
   formData.append('file', file);
-  
+
   const response = await fetch(`${API_BASE_URL}/upload/upload-video`, {
     method: 'POST',
     body: formData
   });
-  
+
   const result = await response.json();
   return result;
 };
@@ -227,6 +227,7 @@ export const extractPptxText = async (file: File): Promise<{
     slide_number: number;
     title: string;
     content: string;
+    rewritten_content?: string;
     all_text: string[];
   }>;
   total_slides?: number;

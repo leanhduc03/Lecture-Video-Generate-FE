@@ -205,12 +205,13 @@ const UploadedSlideToVideo = () => {
             title: userUploadedPptx.name.replace('.pptx', ''),
             slides: uploadedSlides.map((slide: SlideMetadata, idx: number) => {
               const slideText = textResult.slides_text?.find(s => s.slide_number === idx);
+              const finalContent = slideText?.rewritten_content || slideText?.content || '';
 
               return {
                 slide_number: idx,
                 title: slide.title || `Slide ${idx + 1}`,
                 content: [],
-                original_content: slideText?.content || ''
+                original_content: finalContent
               };
             })
           }
@@ -800,7 +801,7 @@ const UploadedSlideToVideo = () => {
               accept=".ppt,.pptx"
               onChange={handleUserUploadPptx}
             />
-            
+
             {!userUploadedPptx ? (
               // Hiển thị UI upload khi chưa chọn file
               <div className="upload-content">
@@ -848,7 +849,7 @@ const UploadedSlideToVideo = () => {
                     {(userUploadedPptx.size / (1024 * 1024)).toFixed(2)} MB
                   </p>
                   <div className="file-actions">
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setUserUploadedPptx(null);
