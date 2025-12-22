@@ -802,7 +802,7 @@ $shadow-color: rgba(0, 0, 0, 0.1);
             left: 0;
             right: 0;
             background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-            padding: 0.75rem;
+            padding: 0.75rem 0.5rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -813,6 +813,13 @@ $shadow-color: rgba(0, 0, 0, 0.1);
               color: white;
               cursor: pointer;
               padding: 0.25rem;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+
+              &:hover {
+                opacity: 0.8;
+              }
 
               .material-symbols-outlined {
                 font-size: 1.5rem;
@@ -825,12 +832,17 @@ $shadow-color: rgba(0, 0, 0, 0.1);
               background: rgba(255, 255, 255, 0.3);
               border-radius: 2px;
               cursor: pointer;
+              overflow: hidden;
+
+              &:hover .progress {
+                background: #a78bfa;
+              }
 
               .progress {
                 height: 100%;
                 background: #8b5cf6;
                 border-radius: 2px;
-                transition: width 0.1s;
+                transition: width 0.1s, background 0.2s;
               }
             }
 
@@ -838,36 +850,10 @@ $shadow-color: rgba(0, 0, 0, 0.1);
               color: white;
               font-size: 0.75rem;
               white-space: nowrap;
+              min-width: 70px;
+              text-align: right;
             }
           }
-        }
-
-        .preview-overlay {
-          position: absolute;
-          inset: 0;
-          background: rgba(139, 92, 246, 0.9);
-          border-radius: 8px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          opacity: 0;
-          transition: opacity 0.3s;
-
-          .material-symbols-outlined {
-            font-size: 3rem;
-            color: white;
-            margin-bottom: 0.5rem;
-          }
-
-          p {
-            color: white;
-            font-weight: 600;
-          }
-        }
-
-        &:hover .preview-overlay {
-          opacity: 1;
         }
       }
     }
@@ -1189,6 +1175,179 @@ $shadow-color: rgba(0, 0, 0, 0.1);
 
         &:hover {
           background: #7c3aed;
+        }
+      }
+    }
+  }
+
+  .preview-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e5e7eb;
+
+    > h3 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 1.5rem;
+
+      .material-symbols-outlined {
+        font-size: 1.5rem;
+        color: #8b5cf6;
+      }
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .preview-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      .preview-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: #8b5cf6;
+        color: white;
+        font-weight: 600;
+        font-size: 0.875rem;
+        border-radius: 8px 8px 0 0;
+        width: 100%;
+        max-width: 280px;
+
+        .material-symbols-outlined {
+          font-size: 1.25rem;
+        }
+      }
+
+      .preview-content {
+        position: relative;
+        width: 280px;
+        height: 280px;
+        background: #000;
+        border: 3px solid #8b5cf6;
+        border-radius: 0 0 12px 12px;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        overflow: hidden;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        &.video-preview {
+          video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+          }
+
+          .play-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+
+            button {
+              background: rgba(0, 0, 0, 0.7);
+              border: none;
+              border-radius: 50%;
+              width: 60px;
+              height: 60px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              transition: all 0.2s;
+
+              &:hover {
+                background: rgba(0, 0, 0, 0.9);
+                transform: scale(1.1);
+              }
+
+              .material-symbols-outlined {
+                color: white;
+                font-size: 2.5rem;
+              }
+            }
+          }
+
+          .video-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+            padding: 0.75rem 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            .control-button {
+              background: none;
+              border: none;
+              color: white;
+              cursor: pointer;
+              padding: 0.25rem;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+
+              &:hover {
+                opacity: 0.8;
+              }
+
+              .material-symbols-outlined {
+                font-size: 1.5rem;
+              }
+            }
+
+            .progress-bar {
+              flex: 1;
+              height: 4px;
+              background: rgba(255, 255, 255, 0.3);
+              border-radius: 2px;
+              cursor: pointer;
+              overflow: hidden;
+
+              &:hover .progress {
+                background: #a78bfa;
+              }
+
+              .progress {
+                height: 100%;
+                background: #8b5cf6;
+                border-radius: 2px;
+                transition: width 0.1s, background 0.2s;
+              }
+            }
+
+            .time-display {
+              color: white;
+              font-size: 0.75rem;
+              white-space: nowrap;
+              min-width: 70px;
+              text-align: right;
+            }
+          }
         }
       }
     }

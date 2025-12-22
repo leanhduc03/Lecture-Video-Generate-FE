@@ -63,11 +63,12 @@ const DeepfakeVideo = () => {
     const file = e.target.files?.[0];
     if (file) {
       setSourceFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSourcePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Không set sourcePreview nữa
+      // const reader = new FileReader();
+      // reader.onloadend = () => {
+      //   setSourcePreview(reader.result as string);
+      // };
+      // reader.readAsDataURL(file);
 
       setIsUploadingSource(true);
       setError(null);
@@ -88,11 +89,12 @@ const DeepfakeVideo = () => {
     const file = e.target.files?.[0];
     if (file) {
       setTargetFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setTargetPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Không set targetPreview nữa
+      // const reader = new FileReader();
+      // reader.onloadend = () => {
+      //   setTargetPreview(reader.result as string);
+      // };
+      // reader.readAsDataURL(file);
 
       setIsUploadingTarget(true);
       setError(null);
@@ -119,12 +121,14 @@ const DeepfakeVideo = () => {
 
   const handleSelectExistingImage = (imageUrl: string) => {
     setSelectedImageUrl(imageUrl);
-    setSourcePreview(imageUrl);
+    // Không set sourcePreview để tránh hiển thị ở upload zone
+    // setSourcePreview(imageUrl);
   };
 
   const handleSelectExistingVideo = (videoUrl: string) => {
     setSelectedVideoUrl(videoUrl);
-    setTargetPreview(videoUrl);
+    // Không set targetPreview để tránh hiển thị ở upload zone
+    // setTargetPreview(videoUrl);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -341,14 +345,6 @@ const DeepfakeVideo = () => {
                         <span className="material-symbols-outlined spinning">progress_activity</span>
                         <span>Đang upload...</span>
                       </>
-                    ) : sourcePreview ? (
-                      <div className="preview-container">
-                        <img src={sourcePreview} alt="Source Preview" />
-                        <div className="preview-overlay">
-                          <span className="material-symbols-outlined">check_circle</span>
-                          <p>Đã chọn ảnh</p>
-                        </div>
-                      </div>
                     ) : (
                       <>
                         <span className="material-symbols-outlined">add_photo_alternate</span>
@@ -437,39 +433,6 @@ const DeepfakeVideo = () => {
                         <span className="material-symbols-outlined spinning">progress_activity</span>
                         <span>Đang upload...</span>
                       </>
-                    ) : targetPreview ? (
-                      <div className="preview-container video-preview">
-                        <video
-                          ref={videoRef}
-                          src={targetPreview}
-                          onTimeUpdate={handleTimeUpdate}
-                          onLoadedMetadata={handleLoadedMetadata}
-                          onEnded={() => setIsPlaying(false)}
-                        />
-                        {!isPlaying && (
-                          <div className="play-overlay" onClick={handlePlayPause}>
-                            <button type="button">
-                              <span className="material-symbols-outlined">play_circle</span>
-                            </button>
-                          </div>
-                        )}
-                        <div className="video-controls">
-                          <button type="button" className="control-button" onClick={handlePlayPause}>
-                            <span className="material-symbols-outlined">
-                              {isPlaying ? 'pause' : 'play_arrow'}
-                            </span>
-                          </button>
-                          <div className="progress-bar" onClick={handleProgressClick}>
-                            <div
-                              className="progress"
-                              style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                            ></div>
-                          </div>
-                          <span className="time-display">
-                            {formatTime(currentTime)} / {formatTime(duration)}
-                          </span>
-                        </div>
-                      </div>
                     ) : (
                       <>
                         <span className="material-symbols-outlined">videocam</span>
@@ -517,6 +480,69 @@ const DeepfakeVideo = () => {
               )}
             </div>
           </div>
+
+          {/* Preview Section */}
+          {(selectedImageUrl || selectedVideoUrl) && (
+            <div className="preview-section">
+              <h3>
+                <span className="material-symbols-outlined">visibility</span>
+                Xem trước nội dung đã chọn
+              </h3>
+              <div className="preview-grid">
+                {selectedImageUrl && (
+                  <div className="preview-item">
+                    <div className="preview-label">
+                      <span className="material-symbols-outlined">image</span>
+                      Ảnh nguồn
+                    </div>
+                    <div className="preview-content">
+                      <img src={selectedImageUrl} alt="Selected Source" />
+                    </div>
+                  </div>
+                )}
+                {selectedVideoUrl && (
+                  <div className="preview-item">
+                    <div className="preview-label">
+                      <span className="material-symbols-outlined">videocam</span>
+                      Video đích
+                    </div>
+                    <div className="preview-content video-preview">
+                      <video
+                        ref={videoRef}
+                        src={selectedVideoUrl}
+                        onTimeUpdate={handleTimeUpdate}
+                        onLoadedMetadata={handleLoadedMetadata}
+                        onEnded={() => setIsPlaying(false)}
+                      />
+                      {!isPlaying && (
+                        <div className="play-overlay" onClick={handlePlayPause}>
+                          <button type="button">
+                            <span className="material-symbols-outlined">play_circle</span>
+                          </button>
+                        </div>
+                      )}
+                      <div className="video-controls">
+                        <button type="button" className="control-button" onClick={handlePlayPause}>
+                          <span className="material-symbols-outlined">
+                            {isPlaying ? 'pause' : 'play_arrow'}
+                          </span>
+                        </button>
+                        <div className="progress-bar" onClick={handleProgressClick}>
+                          <div
+                            className="progress"
+                            style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                          ></div>
+                        </div>
+                        <span className="time-display">
+                          {formatTime(currentTime)} / {formatTime(duration)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="action-section">
             <button
