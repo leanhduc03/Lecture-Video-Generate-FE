@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import '../../styles/combined-ai-feature.css';
-import { 
-  generateSpeech, 
+import '../../styles/uploaded-slide-to-video.scss';
+import {
+  generateSpeech,
   processFakelip,
   combineSlideImageAndVideo,
   concatVideos,
@@ -28,15 +28,14 @@ import {
   PresentationMetadata
 } from '../../services/slideService';
 import { getMediaVideos, MediaVideo } from '../../services/mediaVideoService';
-import { getSampleVideos, SampleVideo } from '../../services/sampleVideoService';
 import { getMyAudios, uploadReferenceAudio, deleteUploadedAudio, UploadedAudio } from '../../services/uploadedAudioService';
-import { API_CONFIG, buildApiUrl } from '../../config/api';
+import { buildApiUrl } from '../../config/api';
 
 
 const SlideToVideo = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   // Input content
   const [inputContent, setInputContent] = useState<string>('');
   const [numSlides, setNumSlides] = useState<number | undefined>(undefined);
@@ -69,7 +68,7 @@ const SlideToVideo = () => {
 
   // Voice mode selection
   const [voiceMode, setVoiceMode] = useState<'preset' | 'clone'>('preset');
-  
+
   // Mode 1: Voice Cloning
   const [audioMode, setAudioMode] = useState<'upload' | 'existing'>('upload');
   const [referenceAudioFile, setReferenceAudioFile] = useState<File | null>(null);
@@ -92,21 +91,27 @@ const SlideToVideo = () => {
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Video player states
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+
   // Load sample videos from API
   useEffect(() => {
     const loadVideos = async () => {
       try {
         setLoadingVideos(true);
         setLoadingDeepfakeVideos(true);
-        
+
         // Load sample videos
         const sampleResponse = await getMediaVideos('sample');
         setVideoOptions(sampleResponse.videos);
-        
+
         // Load deepfake videos
         const deepfakeResponse = await getMediaVideos('deepfake');
         setDeepfakeVideos(deepfakeResponse.videos);
-        
+
         // Set default
         if (sampleResponse.videos.length > 0) {
           setSelectedVideoUrl(sampleResponse.videos[0].video_url);
@@ -169,13 +174,13 @@ const SlideToVideo = () => {
       setError('Vui lòng nhập nội dung để tạo slide');
       return;
     }
-    
+
     setIsGeneratingSlides(true);
     setError(null);
-    
+
     try {
       const result = await generateSlidesFromContent(inputContent, numSlides);
-      
+
       if (result.success && result.data?.pptx_file) {
         const pptxPath = result.data.pptx_file.filepath;
         await handleUploadAndProcessPPTX(pptxPath, result.data.json_file?.filename);
@@ -193,13 +198,13 @@ const SlideToVideo = () => {
     try {
       const pptxFilename = getBasename(pptxPath);
       const pptxBlob = await downloadPptxFile(pptxFilename);
-      
-      const pptxFile = new File([pptxBlob], pptxFilename, { 
-        type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
+
+      const pptxFile = new File([pptxBlob], pptxFilename, {
+        type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
       });
 
       const uploadResult = await uploadPptxAndExtractSlides(pptxFile);
-      
+
       if (uploadResult.success && uploadResult.slides) {
         if (jsonFilename) {
           await handleFetchMetadata(jsonFilename, uploadResult.slides);
@@ -220,7 +225,7 @@ const SlideToVideo = () => {
   const handleFetchMetadata = async (jsonFilename: string, slideImages: any[]) => {
     try {
       const result = await fetchSlideMetadata(jsonFilename);
-      
+
       if (result.success && result.data) {
         const combinedMetadata = combineMetadataWithImages(result.data, slideImages);
         setMetadata(combinedMetadata);
@@ -236,15 +241,15 @@ const SlideToVideo = () => {
 
   const downloadPptxForEdit = async () => {
     if (!metadata) return;
-    
+
     try {
       setError(null);
       const result = await getPresentationsList();
-      
+
       if (result.success && result.data && result.data.presentations.length > 0) {
         const latestPptx = result.data.presentations[0];
         const downloadUrl = buildApiUrl(`/slides/download/${latestPptx.filename}`);
-        
+
         const downloadLink = document.createElement('a');
         downloadLink.href = downloadUrl;
         downloadLink.download = latestPptx.filename;
@@ -279,15 +284,15 @@ const SlideToVideo = () => {
     try {
       console.log('📸 Extracting images from uploaded PPTX...');
       const imageResult = await uploadPptxAndExtractSlidesImage(userUploadedPptx);
-      
+
       console.log('📝 Extracting text from uploaded PPTX...');
       const textResult = await extractPptxText(userUploadedPptx);
       console.log('✅ Text extraction result:', textResult);
-  
+
       if (imageResult.success && imageResult.slides) {
         const uploadedSlides: SlideMetadata[] = imageResult.slides.map((img: any, idx: number) => {
           const slideText = textResult.slides_text?.find((s: any) => s.slide_number === idx);
-          
+
           return {
             slide_number: idx,
             type: idx === 0 ? 'title' : 'content',
@@ -300,7 +305,7 @@ const SlideToVideo = () => {
         console.log('📋 Uploaded slides with extracted text:', uploadedSlides);
 
         setSlides(uploadedSlides);
-        
+
         // ⭐ Tạo metadata mới với content đã extract
         const updatedMetadata: PresentationMetadata = {
           title: userUploadedPptx.name.replace('.pptx', ''),
@@ -311,7 +316,7 @@ const SlideToVideo = () => {
             title: userUploadedPptx.name.replace('.pptx', ''),
             slides: uploadedSlides.map((slide: SlideMetadata, idx: number) => {
               const slideText = textResult.slides_text?.find((s: any) => s.slide_number === idx);
-              
+
               return {
                 slide_number: idx,
                 title: slide.title || `Slide ${idx + 1}`,
@@ -326,9 +331,9 @@ const SlideToVideo = () => {
 
         setMetadata(updatedMetadata);
         setUserUploadedPptx(null); // ⭐ Reset để ẩn nút upload
-        
+
         enterEditModeWithMetadata(uploadedSlides, updatedMetadata);
-        
+
         setError(null);
       } else {
         throw new Error('Không thể tách slides thành images');
@@ -348,10 +353,10 @@ const SlideToVideo = () => {
   const enterEditModeWithMetadata = (uploadedSlides: SlideMetadata[], metadataToUse: PresentationMetadata) => {
     const editData: SlideData[] = uploadedSlides.map((slide, idx) => {
       const slideData = metadataToUse.slide_data.slides[idx];
-      
+
       console.log(`Slide ${idx} content:`, slideData?.original_content);
       console.log(`Slide ${idx} image:`, slide.filepath); // ⭐ Debug log
-      
+
       return {
         slide_number: idx,
         title: slide.title || `Slide ${idx + 1}`,
@@ -359,10 +364,10 @@ const SlideToVideo = () => {
         original_content: slideData?.original_content || ''
       };
     });
-    
+
     console.log('✅ Edit data with extracted content:', editData);
     console.log('✅ Slides with images:', uploadedSlides); // ⭐ Debug log
-    
+
     setEditedSlideData(editData);
     setSavedSlideData([...editData]);
     setEditModeSlides(uploadedSlides); // ⭐ Lưu slides cho edit mode
@@ -372,15 +377,15 @@ const SlideToVideo = () => {
   // ⭐ Giữ function cũ cho flow generate slides
   const enterEditMode = (newSlideCount?: number) => {
     if (!metadata) return;
-    
+
     const originalSlides = metadata.slide_data.slides;
     const currentSlideCount = newSlideCount || slides.length;
-    
+
     const editData: SlideData[] = [];
-    
+
     for (let i = 0; i < currentSlideCount; i++) {
       const originalSlide = originalSlides.find(s => s.slide_number === i);
-      
+
       if (originalSlide) {
         editData.push({
           slide_number: i,
@@ -397,13 +402,13 @@ const SlideToVideo = () => {
         });
       }
     }
-    
+
     setEditedSlideData(editData);
     setSavedSlideData([...editData]);
     setEditModeSlides(slides); // ⭐ Lưu slides hiện tại
     setEditMode(true);
   };
-    const handleCancelEdit = () => {
+  const handleCancelEdit = () => {
     setEditedSlideData([...savedSlideData]);
     setEditMode(false);
     setEditModeSlides([]); // ⭐ Clear
@@ -434,7 +439,7 @@ const SlideToVideo = () => {
       };
 
       const result = await saveSlideMetadata(updatedMetadata);
-      
+
       if (result.success) {
         setMetadata(prev => prev ? { ...prev, slide_data: updatedMetadata } : null);
         setSavedSlideData([...editedSlideData]); // ⭐ Cập nhật backup
@@ -536,7 +541,7 @@ const SlideToVideo = () => {
 
   const handleDeleteAudio = async (audioId: number) => {
     if (!window.confirm('Bạn có chắc muốn xóa audio này?')) return;
-    
+
     try {
       await deleteUploadedAudio(audioId);
       await loadMyAudios();
@@ -554,7 +559,7 @@ const SlideToVideo = () => {
     if (referenceAudioUrl) {
       return referenceAudioUrl;
     }
-    
+
     if (referenceAudioFile) {
       const result = await uploadAudioFile(referenceAudioFile);
       if (result.success && result.audio_url) {
@@ -563,7 +568,7 @@ const SlideToVideo = () => {
         throw new Error('Không thể upload reference audio');
       }
     }
-    
+
     throw new Error('Không có audio để sử dụng');
   };
 
@@ -602,7 +607,7 @@ const SlideToVideo = () => {
       setError('Vui lòng nhập reference text cho audio đã chọn');
       return;
     }
-    
+
     setError(null);
     setIsProcessing(true);
 
@@ -620,15 +625,15 @@ const SlideToVideo = () => {
       }
 
       const contentSlides = slides.filter(s => s.type !== 'title');
-      
+
       for (let i = 0; i < contentSlides.length; i++) {
         const slide = contentSlides[i];
         const slideData = slideDataList.find(sd => sd.slide_number === slide.slide_number);
-        
-        setProcessingMessage(`Xử lý slide ${i+1}/${contentSlides.length}: ${slideData?.title || 'Untitled'}...`);
-        
+
+        setProcessingMessage(`Xử lý slide ${i + 1}/${contentSlides.length}: ${slideData?.title || 'Untitled'}...`);
+
         const narrationText = slideData?.original_content || '';
-        
+
         if (!narrationText) {
           console.warn(`Slide ${slide.slide_number} không có content, bỏ qua`);
           continue;
@@ -762,11 +767,11 @@ const SlideToVideo = () => {
     }
   };
 
-    // Thêm handler cho video source type (đặt sau các handler khác)
+  // Thêm handler cho video source type (đặt sau các handler khác)
   const handleVideoSourceTypeChange = (type: 'sample' | 'deepfake' | 'custom') => {
     setVideoSourceType(type);
     setSelectedVideoFile(null);
-    
+
     if (type === 'sample' && videoOptions.length > 0) {
       setSelectedVideoUrl(videoOptions[0].video_url);
     } else if (type === 'deepfake' && deepfakeVideos.length > 0) {
@@ -776,123 +781,106 @@ const SlideToVideo = () => {
     }
   };
 
+  // Video player handlers
+  const handlePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (videoRef.current) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      videoRef.current.currentTime = pos * videoRef.current.duration;
+    }
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Reset video khi đổi source
+  React.useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [selectedVideoUrl, selectedVideoFile]);
+
   // EDIT MODE
   if (editMode && editedSlideData.length > 0) {
     return (
-      <div className="combined-ai-feature">
-        <h2>Chỉnh sửa nội dung thuyết trình</h2>
-        
-        {error && <div className="error-message">{error}</div>}
-        
+      <div className="uploaded-slide-to-video">
+        <div className="page-header">
+          <h1 style={{ fontSize: '1.5rem' }}>Nhập nội dung thuyết trình cho từng slide</h1>
+        </div>
+
+        {error && (
+          <div className="error-message">
+            <span className="material-symbols-outlined">error</span>
+            {error}
+          </div>
+        )}
+
         <div className="edit-slides-container">
           {editedSlideData.map((slideData, index) => (
-            <div key={index} className="slide-edit-section" style={{
-              marginBottom: 30, 
-              padding: 20, 
-              border: '2px solid #e0e0e0', 
-              borderRadius: 8,
-              background: '#f9f9f9'
-            }}>
-              <div style={{display: 'flex', gap: 20, alignItems: 'flex-start'}}>
-                {/* Slide Image */}
+            <div key={index} className="slide-edit-card">
+              <div className="slide-content">
                 {editModeSlides[index] && (
-                  <div style={{flex: '0 0 400px'}}>
-                    <img 
-                      src={editModeSlides[index].filepath} 
-                      alt={`Slide ${index + 1}`} 
-                      style={{
-                        width: '100%', 
-                        border: '2px solid #ccc', 
-                        borderRadius: 8,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                      }}
+                  <div className="slide-image-wrapper">
+                    <img
+                      src={editModeSlides[index].filepath}
+                      alt={`Slide ${index + 1}`}
                     />
-                    <div style={{
-                      marginTop: 10, 
-                      textAlign: 'center', 
-                      fontWeight: 'bold',
-                      color: '#333',
-                      fontSize: '14px'
-                    }}>
-                      Slide {index + 1}: {slideData.title}
-                    </div>
+                    <div className="slide-number">Slide {index + 1}</div>
                   </div>
                 )}
-                
-                {/* Original Content Editor */}
-                <div style={{flex: 1}}>
-                  <label style={{
-                    display: 'block', 
-                    marginBottom: 8, 
-                    fontWeight: 'bold',
-                    fontSize: '16px',
-                    color: '#333'
-                  }}>
-                    Nội dung thuyết trình cho slide này:
-                  </label>
+
+                <div className="script-editor">
+                  <label>Script thuyết trình cho slide này:</label>
                   <textarea
                     value={slideData.original_content}
-                    onChange={(e) => {
-                      const text = e.target.value;
-                      updateOriginalContent(index, text);
-                    }}
-                    placeholder="Nhập nội dung thuyết trình (tối đa 250 ký tự)..."
+                    onChange={(e) => updateOriginalContent(index, e.target.value)}
+                    placeholder="Nhập nội dung bạn muốn thuyết trình cho slide này ..."
                     rows={8}
-                    style={{
-                      width: '100%', 
-                      padding: '12px',
-                      fontSize: '14px',
-                      border: '1px solid #ddd',
-                      borderRadius: 4,
-                      fontFamily: 'inherit',
-                      resize: 'vertical'
-                    }}
                   />
-                  <div style={{
-                    marginTop: 8,
-                    fontSize: '13px', 
-                    color: '#666',
-                    fontWeight: 'normal'
-                  }}>
+                  <div className="char-count">
                     {slideData.original_content.length}/1000 ký tự
-                    {/* {slideData.original_content.length > 240 && ' - Gần đạt giới hạn!'} */}
                   </div>
                 </div>
               </div>
             </div>
           ))}
-          
-          <div style={{marginTop: 30, textAlign: 'center', padding: '20px 0', borderTop: '2px solid #ddd'}}>
-            <button 
-              onClick={handleCancelEdit} 
-              style={{
-                marginRight: 15, 
-                padding: '12px 30px',
-                fontSize: '16px',
-                background: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: 4,
-                cursor: 'pointer'
-              }}
-            >
+
+          <div className="edit-actions">
+            <button onClick={handleCancelEdit} className="cancel-btn">
               Hủy
             </button>
-            <button 
+            <button
               onClick={handleSaveMetadata}
               disabled={isSavingMetadata}
-              style={{
-                padding: '12px 30px',
-                fontSize: '16px',
-                background: isSavingMetadata ? '#ccc' : '#28a745', 
-                color: 'white',
-                border: 'none',
-                borderRadius: 4,
-                cursor: isSavingMetadata ? 'not-allowed' : 'pointer',
-                fontWeight: 'bold'
-              }}
+              className="save-btn"
             >
-              {isSavingMetadata ? 'Đang lưu...' : '💾 Lưu và tiếp tục'}
+              {isSavingMetadata ? 'Đang lưu...' : 'Lưu và tiếp tục'}
             </button>
           </div>
         </div>
@@ -901,9 +889,7 @@ const SlideToVideo = () => {
   }
 
   return (
-    <div className="combined-ai-feature">
-      <h2>Slide to Video - Tạo video bài giảng tự động</h2>
-
+    <div className="uploaded-slide-to-video">
       {error && <div className="error-message">{error}</div>}
 
       {/* Audio Warning Modal */}
@@ -976,798 +962,623 @@ const SlideToVideo = () => {
         </div>
       )}
 
-      {/* Step 1 */}
-      <section className="step-content">
-        <h3>Bước 1: Nhập nội dung và tạo slides</h3>
-        <textarea
-          rows={8}
-          placeholder="Nhập nội dung bài giảng của bạn..."
-          value={inputContent}
-          onChange={(e) => setInputContent(e.target.value)}
-          style={{width: '100%', padding: '10px'}}
-        />
-        <div style={{marginTop: 10}}>
-          <label>
-            Số lượng slide (để trống = tự động):
-            <input
-              type="number"
-              min="1"
-              max="50"
-              value={numSlides || ''}
-              onChange={(e) => setNumSlides(e.target.value ? parseInt(e.target.value) : undefined)}
-              style={{marginLeft: 10, width: 80}}
-            />
-          </label>
+      {/* Step 1: Generate slides from content */}
+      {!metadata && <div className="section-card">
+        <div className="section-header">
+          <span className="icon-wrapper">
+        <span className="material-symbols-outlined">auto_awesome</span>
+          </span>
+          <h2>Nhập nội dung và tạo slides</h2>
         </div>
-        <button 
-          onClick={handleGenerateSlides} 
-          disabled={!inputContent.trim() || isGeneratingSlides}
-          style={{
-            marginTop: 10,
-            padding: '10px 20px',
-            background: (!inputContent.trim() || isGeneratingSlides) ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: 4,
-            cursor: (!inputContent.trim() || isGeneratingSlides) ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isGeneratingSlides ? '⏳ Đang tạo slides...' : '📝 Tạo Slides'}
-        </button>
-        
-        {metadata && (
-          <div style={{
-            marginTop: 15, 
-            padding: 15, 
-            background: '#e8f5e9', 
-            borderRadius: 5,
-            border: '1px solid #a5d6a7'
-          }}>
-            <strong>✓ Đã tạo thành công:</strong>
-            <div>Tiêu đề: {metadata.title}</div>
-            <div>Tổng số slides: {metadata.total_slides}</div>
-          </div>
-        )}
-      </section>
-
-      {/* Step 2 */}
-      {metadata && !editMode && (
-        <section className="step-content">
-          <h3>Bước 2: Tải xuống và chỉnh sửa slides</h3>
-          
-          <div style={{marginBottom: 15}}>
-            <button 
-              onClick={downloadPptxForEdit} 
-              style={{
-                marginRight: 10,
-                padding: '10px 20px',
-                background: '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: 4,
-                cursor: 'pointer'
-              }}
-            >
-              📥 Tải PPTX về để chỉnh sửa
-            </button>
-            <button 
-              onClick={() => enterEditMode()} 
-              style={{
-                marginLeft: 10, 
-                padding: '10px 20px',
-                background: '#17a2b8', 
-                color: 'white',
-                border: 'none',
-                borderRadius: 4,
-                cursor: 'pointer'
-              }}
-            >
-              ✏️ Chỉnh sửa nội dung thuyết trình
-            </button>
-          </div>
-
-          <div>
-            <label style={{fontWeight: 'bold'}}>Hoặc upload PPTX đã chỉnh sửa: </label>
-            <input 
-              type="file" 
-              accept=".pptx" 
-              onChange={handleUserUploadPptx}
-              style={{marginLeft: 10}}
+        <div className="section-content">
+          <div className="relative">
+            <textarea
+              className="block w-full rounded-md border-2 border-gray-400 shadow-sm focus:outline-none bg-white text-gray-900 sm:text-sm p-4 h-48 resize-y"
+              placeholder="Nhập nội dung bài giảng của bạn vào đây..."
+              value={inputContent}
+              onChange={(e) => setInputContent(e.target.value)}
+              style={{ width: '100%' }}
             />
-            {/* ⭐ Chỉ hiện nút upload khi có file được chọn */}
-            {userUploadedPptx && (
-              <button 
-                onClick={uploadEditedPptx} 
-                disabled={isUploadingPptx}
-                style={{
-                  marginLeft: 10,
-                  padding: '8px 16px',
-                  background: isUploadingPptx ? '#ccc' : '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 4,
-                  cursor: isUploadingPptx ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {isUploadingPptx ? '⏳ Đang upload...' : '📤 Upload PPTX'}
-              </button>
-            )}
           </div>
-        </section>
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4" style={{ marginTop: '1rem' }}>
+            <div className="w-full sm:w-48">
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                Số lượng slide (để trống = tự động):
+              </label>
+              <input
+                className="block w-full rounded-md border-2 border-gray-400 shadow-sm focus:outline-none bg-white text-gray-900 sm:text-sm px-3 py-2"
+                type="number"
+                min="1"
+                max="50"
+                value={numSlides || ''}
+                onChange={(e) => setNumSlides(e.target.value ? parseInt(e.target.value) : undefined)}
+              />
+            </div>
+            <button
+              onClick={handleGenerateSlides}
+              disabled={!inputContent.trim() || isGeneratingSlides}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-md shadow-sm text-sm font-medium transition-colors flex items-center justify-center gap-2"
+              style={{
+                opacity: (!inputContent.trim() || isGeneratingSlides) ? 0.5 : 1,
+                cursor: (!inputContent.trim() || isGeneratingSlides) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <span className="material-symbols-outlined text-lg">auto_awesome</span>
+              {isGeneratingSlides ? 'Đang tạo slides...' : 'Tạo slides'}
+            </button>
+          </div>
+        </div>
+      </div>}
+
+      {/* Step 2: Download and edit slides */}
+      {metadata && !editMode && (
+        <div className="section-card">
+          <div className="section-header">
+            <span className="icon-wrapper">
+              <span className="material-symbols-outlined">edit_document</span>
+            </span>
+            <h2>Tải xuống và chỉnh sửa slides</h2>
+          </div>
+          <div className="section-content">
+            <div className="space-y-5">
+              {metadata && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+                  <span className="material-symbols-outlined text-green-600 mt-0.5">check_circle</span>
+                  <div className="text-sm">
+                    <p className="font-bold text-green-800">Slide hiện tại:</p>
+                    <p className="text-green-700 mt-1">
+                      <span className="font-medium">Tiêu đề:</span> {metadata.title}
+                    </p>
+                    <p className="text-green-700">
+                      <span className="font-medium">Tổng số slides:</span> {metadata.total_slides}
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-4">
+                <button
+                  onClick={downloadPptxForEdit}
+                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-md shadow-sm text-sm font-medium transition-colors"
+                >
+                  <span className="material-symbols-outlined">download</span>
+                  Tải PPTX về để chỉnh sửa
+                </button>
+                <button
+                  onClick={() => enterEditMode()}
+                  className="flex items-center gap-2 bg-[#17a2b8] hover:bg-[#138496] text-white px-4 py-2.5 rounded-md shadow-sm text-sm font-medium transition-colors"
+                >
+                  <span className="material-symbols-outlined">edit_note</span>
+                  Nhập script thuyết trình
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div className="text-sm font-medium text-gray-900">
+                  Hoặc upload PPTX đã chỉnh sửa:
+                </div>
+                <div className="flex items-center gap-3">
+                  <label
+                    htmlFor="pptx-upload-input"
+                    className="bg-white border-2 border-gray-400 text-gray-900 px-4 py-2 rounded-md text-sm font-medium shadow-sm cursor-pointer"
+                  >
+                    Chọn file
+                  </label>
+                  <input
+                    id="pptx-upload-input"
+                    type="file"
+                    accept=".pptx"
+                    onChange={handleUserUploadPptx}
+                    style={{ display: 'none' }}
+                  />
+                  <span className="text-sm text-gray-500 dark:text-gray-400 italic">
+                    {userUploadedPptx ? userUploadedPptx.name : 'Không có tệp nào được chọn'}
+                  </span>
+                  {userUploadedPptx && (
+                    <button
+                      onClick={uploadEditedPptx}
+                      disabled={isUploadingPptx}
+                      className="bg-[#28a745] hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                      style={{
+                        opacity: isUploadingPptx ? 0.5 : 1,
+                        cursor: isUploadingPptx ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {isUploadingPptx ? 'Đang upload...' : 'Upload PPTX'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Step 3 */}
+      {/* Step 3: Video and Voice Configuration */}
       {metadata && !editMode && (
-        <section className="step-content">
-          <h3>Bước 3: Chọn video và giọng thuyết trình</h3>
-          
+        <div className="config-sections active">
           {/* Video Selection */}
-          <div style={{marginBottom: 20}}>
-            <h4>Chọn Video Giảng Viên:</h4>
-            
-            {/* Option 1: Sample Video */}
-            <div style={{marginBottom: 15}}>
-              <label style={{display: 'flex', alignItems: 'flex-start', gap: 10}}>
-                <input
-                  type="radio"
-                  name="videoChoice"
-                  checked={videoSourceType === 'sample'}
-                  onChange={() => handleVideoSourceTypeChange('sample')}
-                />
-                <div style={{flex: 1}}>
-                  <strong>Sử dụng video giảng viên mẫu:</strong>
-                  <select
-                    value={selectedVideoUrl}
-                    onChange={handleVideoPresetChange}
-                    disabled={videoSourceType !== 'sample' || loadingVideos}
-                    style={{
-                      marginTop: 8,
-                      width: '100%',
-                      padding: 8,
-                      opacity: videoSourceType === 'sample' ? 1 : 0.5
-                    }}
-                  >
-                    {loadingVideos ? (
-                      <option value="">Đang tải...</option>
-                    ) : videoOptions.length === 0 ? (
-                      <option value="">Không có video mẫu</option>
-                    ) : (
-                      videoOptions.map(option => (
-                        <option key={option.id} value={option.video_url}>{option.name}</option>
-                      ))
-                    )}
-                  </select>
-                </div>
-              </label>
+          <div className="section-card">
+            <div className="section-header">
+              <span className="icon-wrapper">
+                <span className="material-symbols-outlined">person_play</span>
+              </span>
+              <h2>Chọn Video Giảng Viên</h2>
             </div>
 
-            {/* Option 2: Deepfake Video */}
-            <div style={{marginBottom: 15}}>
-              <label style={{display: 'flex', alignItems: 'flex-start', gap: 10}}>
-                <input
-                  type="radio"
-                  name="videoChoice"
-                  checked={videoSourceType === 'deepfake'}
-                  onChange={() => handleVideoSourceTypeChange('deepfake')}
-                />
-                <div style={{flex: 1}}>
-                  <strong>Sử dụng video deepfake đã tạo:</strong>
-                  <select
-                    value={selectedVideoUrl}
-                    onChange={(e) => setSelectedVideoUrl(e.target.value)}
-                    disabled={videoSourceType !== 'deepfake' || loadingDeepfakeVideos}
-                    style={{
-                      marginTop: 8,
-                      width: '100%',
-                      padding: 8,
-                      opacity: videoSourceType === 'deepfake' ? 1 : 0.5
-                    }}
-                  >
-                    {loadingDeepfakeVideos ? (
-                      <option value="">Đang tải...</option>
-                    ) : deepfakeVideos.length === 0 ? (
-                      <option value="">Chưa có video deepfake</option>
-                    ) : (
-                      deepfakeVideos.map(option => (
-                        <option key={option.id} value={option.video_url}>
-                          {option.name || `Video ${option.id}`}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  
-                  {/* Thông báo và nút dẫn đến trang tạo deepfake */}
-                  {videoSourceType === 'deepfake' && deepfakeVideos.length === 0 && (
-                    <div style={{
-                      marginTop: 10,
-                      padding: 12,
-                      background: '#fff3cd',
-                      borderRadius: 6,
-                      border: '1px solid #ffc107'
-                    }}>
-                      <p style={{
-                        margin: 0,
-                        marginBottom: 10,
-                        fontSize: '14px',
-                        color: '#856404',
-                        fontStyle: 'italic'
-                      }}>
-                        💡 Bạn chưa có video deepfake nào. Tạo video ghép mặt mới ngay!
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => navigate('/create-content', { state: { activeTab: 'deepfake' } })}
-                        style={{
-                          padding: '8px 20px',
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: 6,
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          fontWeight: 'bold',
-                          boxShadow: '0 2px 8px rgba(102, 126, 234, 0.4)',
-                          transition: 'all 0.3s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.6)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.4)';
-                        }}
-                      >
-                        <span>🎭</span>
-                        <span>Tạo video deepfake ngay</span>
-                      </button>
-                    </div>
-                  )}
-                  
-                  {/* Hiện button khi đã có video nhưng vẫn muốn tạo thêm */}
-                  {videoSourceType === 'deepfake' && deepfakeVideos.length > 0 && (
-                    <div style={{marginTop: 10}}>
-                      <button
-                        type="button"
-                        onClick={() => navigate('/create-content', { state: { activeTab: 'deepfake' } })}
-                        style={{
-                          padding: '6px 16px',
-                          background: '#6c757d',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: 4,
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          transition: 'background 0.3s'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.background = '#5a6268'}
-                        onMouseOut={(e) => e.currentTarget.style.background = '#6c757d'}
-                      >
-                        ➕ Tạo video deepfake mới
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </label>
-            </div>
-
-            {/* Option 3: Custom Upload */}
-            <div style={{marginBottom: 15}}>
-              <label style={{display: 'flex', alignItems: 'flex-start', gap: 10}}>
-                <input
-                  type="radio"
-                  name="videoChoice"
-                  checked={videoSourceType === 'custom'}
-                  onChange={() => handleVideoSourceTypeChange('custom')}
-                />
-                <div style={{flex: 1}}>
-                  <strong>Upload video tùy chỉnh:</strong>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={handleVideoFileChange}
-                    disabled={videoSourceType !== 'custom'}
-                    style={{
-                      marginTop: 8,
-                      opacity: videoSourceType === 'custom' ? 1 : 0.5
-                    }}
-                  />
-                </div>
-              </label>
-            </div>
-
-            {/* Video Preview */}
-            {(selectedVideoUrl || selectedVideoFile) && (
-              <div style={{
-                marginTop: 15,
-                padding: 15,
-                background: '#f5f5f5',
-                borderRadius: 8,
-                border: '2px solid #e0e0e0'
-              }}>
-                <h5 style={{marginBottom: 10}}>Preview:</h5>
-                <video
-                  src={selectedVideoUrl || (selectedVideoFile ? URL.createObjectURL(selectedVideoFile) : '')}
-                  controls
-                  style={{width: '100%', maxWidth: 400, borderRadius: 4}}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Voice Mode Selection */}
-          <div style={{marginBottom: 20, padding: 20, border: '2px solid #e0e0e0', borderRadius: 8}}>
-            <h4>Chọn Phương Thức Tạo Giọng:</h4>
-            <div style={{marginBottom: 15}}>
-              <label style={{marginRight: 20}}>
-                <input 
-                  type="radio" 
-                  name="voiceMode" 
-                  value="preset"
-                  checked={voiceMode === 'preset'}
-                  onChange={(e) => setVoiceMode(e.target.value as 'preset' | 'clone')}
-                />
-                Sử dụng giọng có sẵn
-              </label>
-              <label>
-                <input 
-                  type="radio" 
-                  name="voiceMode" 
-                  value="clone"
-                  checked={voiceMode === 'clone'}
-                  onChange={(e) => setVoiceMode(e.target.value as 'preset' | 'clone')}
-                />
-                Clone giọng từ mẫu
-              </label>
-            </div>
-
-            {/* Mode 2: Preset Voice */}
-            {voiceMode === 'preset' && (
-              <div style={{padding: 15, background: '#f9f9f9', borderRadius: 5}}>
-                <h5>Cấu hình giọng nói:</h5>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15}}>
-                  <div>
-                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
-                      Giới tính:
-                    </label>
-                    <select 
-                      value={gender} 
-                      onChange={(e) => setGender(e.target.value)}
-                      style={{width: '100%', padding: 8}}
-                    >
-                      {genderOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
-                      Vùng miền:
-                    </label>
-                    <select 
-                      value={area} 
-                      onChange={(e) => setArea(e.target.value)}
-                      style={{width: '100%', padding: 8}}
-                    >
-                      {areaOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
-                      Nhóm giọng:
-                    </label>
-                    <select 
-                      value={group} 
-                      onChange={(e) => setGroup(e.target.value)}
-                      style={{width: '100%', padding: 8}}
-                    >
-                      {groupOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
-                      Cảm xúc:
-                    </label>
-                    <select 
-                      value={emotion} 
-                      onChange={(e) => setEmotion(e.target.value)}
-                      style={{width: '100%', padding: 8}}
-                    >
-                      {emotionOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Mode 1: Voice Cloning */}
-            {voiceMode === 'clone' && (
-              <div style={{padding: 15, background: '#fff3cd', borderRadius: 5}}>
-                <h5>Clone giọng từ file mẫu:</h5>
-                
-                <div className="audio-mode-selector" style={{marginBottom: 15}}>
-                  <button
-                    type="button"
-                    style={{
-                      marginRight: 10,
-                      padding: '8px 16px',
-                      background: audioMode === 'upload' ? '#007bff' : '#f0f0f0',
-                      color: audioMode === 'upload' ? 'white' : '#333',
-                      border: 'none',
-                      borderRadius: 4,
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setAudioMode('upload')}
-                  >
-                    Upload audio mới
-                  </button>
-                  <button
-                    type="button"
-                    style={{
-                      padding: '8px 16px',
-                      background: audioMode === 'existing' ? '#007bff' : '#f0f0f0',
-                      color: audioMode === 'existing' ? 'white' : '#333',
-                      border: 'none',
-                      borderRadius: 4,
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setAudioMode('existing')}
-                  >
-                    Chọn audio đã có
-                  </button>
-                </div>
-
-                {audioMode === 'upload' ? (
-                  <div>
-                    <label style={{display: 'block', marginBottom: 5, fontWeight: 'bold'}}>
-                      Upload file audio mẫu:
-                    </label>
-                    
-                    <div style={{marginBottom: 10}}>
-                      <label style={{display: 'block', marginBottom: 5}}>
-                        Reference Text <span style={{color: 'red'}}>*</span> (bắt buộc):
-                      </label>
-                      <textarea
-                        value={tempReferenceText}
-                        onChange={(e) => setTempReferenceText(e.target.value)}
-                        placeholder="Nhập nội dung tương ứng với audio (bắt buộc trước khi upload)..."
-                        rows={3}
-                        style={{
-                          width: '100%',
-                          padding: 10,
-                          border: tempReferenceText.trim() ? '1px solid #ddd' : '2px solid #ff9800',
-                          borderRadius: 4,
-                          fontFamily: 'inherit',
-                          marginBottom: 10,
-                          backgroundColor: tempReferenceText.trim() ? 'white' : '#fff3cd'
-                        }}
-                      />
-                      <small style={{
-                        display: 'block',
-                        color: tempReferenceText.trim() ? '#666' : '#ff9800',
-                        fontWeight: tempReferenceText.trim() ? 'normal' : 'bold'
-                      }}>
-                        {tempReferenceText.trim() 
-                          ? `✓ ${tempReferenceText.length} ký tự` 
-                          : '⚠️ Vui lòng nhập reference text trước khi chọn file audio'}
-                      </small>
-                      <div style={{ color: '#666', fontSize: '13px', marginTop: 5, fontStyle: 'italic' }}>
-                        💡 Lưu ý: File audio phải có độ dài dưới 15 giây
-                      </div>
-                    </div>
-
-                    <div style={{marginBottom: 10}}>
-                      <label 
-                        htmlFor="audio-upload-input"
-                        style={{
-                          display: 'inline-block',
-                          padding: '10px 20px',
-                          background: tempReferenceText.trim() ? '#007bff' : '#ccc',
-                          color: 'white',
-                          borderRadius: 4,
-                          cursor: tempReferenceText.trim() ? 'pointer' : 'not-allowed',
-                          fontWeight: 'bold',
-                          textAlign: 'center'
-                        }}
-                      >
-                        {isUploadingAudio ? '⏳ Đang upload...' : '📁 Chọn file audio'}
-                      </label>
+            <div className="section-content">
+              <div className="video-options">
+                <div className="options-list">
+                  {/* Sample Video Option */}
+                  <div className="video-option">
+                    <div className="option-header">
                       <input
-                        id="audio-upload-input"
-                        type="file"
-                        accept="audio/*"
-                        onChange={handleReferenceAudioFileChange}
-                        disabled={isUploadingAudio || !tempReferenceText.trim()}
-                        style={{display: 'none'}}
+                        type="radio"
+                        name="videoChoice"
+                        id="video-sample"
+                        checked={videoSourceType === 'sample'}
+                        onChange={() => handleVideoSourceTypeChange('sample')}
                       />
-                      {!tempReferenceText.trim() && (
-                        <p style={{
-                          marginTop: 5,
-                          fontSize: '13px',
-                          color: '#ff9800',
-                          fontStyle: 'italic'
-                        }}>
-                          ⓘ Nhập reference text ở trên để kích hoạt nút chọn file
-                        </p>
-                      )}
-                    </div>
-                    
-                    {isUploadingAudio && (
-                      <div style={{
-                        marginTop: 10,
-                        padding: 10,
-                        background: '#e3f2fd',
-                        borderRadius: 4,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10
-                      }}>
-                        <div style={{
-                          width: 20,
-                          height: 20,
-                          border: '3px solid #f3f3f3',
-                          borderTop: '3px solid #007bff',
-                          borderRadius: '50%',
-                          animation: 'spin 1s linear infinite'
-                        }}></div>
-                        <p style={{color: '#007bff', fontStyle: 'italic', margin: 0}}>
-                          Đang upload audio...
-                        </p>
+                      <div className="option-content">
+                        <label htmlFor="video-sample">Sử dụng video giảng viên mẫu</label>
+                        <p>Chọn từ thư viện giảng viên có sẵn của chúng tôi</p>
+                        <select
+                          value={selectedVideoUrl}
+                          onChange={handleVideoPresetChange}
+                          disabled={videoSourceType !== 'sample' || loadingVideos}
+                        >
+                          {loadingVideos ? (
+                            <option>Đang tải...</option>
+                          ) : videoOptions.length === 0 ? (
+                            <option>Không có video mẫu</option>
+                          ) : (
+                            videoOptions.map(option => (
+                              <option key={option.id} value={option.video_url}>
+                                {option.name}
+                              </option>
+                            )))
+                          }
+                        </select>
                       </div>
-                    )}
+                    </div>
+                  </div>
 
-                    {/* {referenceAudioUrl && audioMode === 'upload' && (
-                      <div style={{
-                        marginTop: 10,
-                        padding: 15,
-                        background: '#e8f5e9',
-                        borderRadius: 4,
-                        border: '2px solid #4caf50'
-                      }}>
-                        <p style={{color: '#2e7d32', marginBottom: 10, fontWeight: 'bold'}}>
-                          ✓ Đã upload thành công!
-                        </p>
-                        <audio
-                          src={referenceAudioUrl}
-                          controls
-                          style={{width: '100%', marginBottom: 10}}
-                        />
-                        {referenceText && (
-                          <div style={{
-                            padding: 10,
-                            background: 'white',
-                            borderRadius: 4,
-                            border: '1px solid #c8e6c9'
-                          }}>
-                            <strong style={{color: '#2e7d32'}}>Reference Text:</strong>
-                            <p style={{marginTop: 5, fontSize: '13px', color: '#333'}}>
-                              {referenceText}
-                            </p>
+                  {/* Deepfake Video Option */}
+                  <div className="video-option">
+                    <div className="option-header">
+                      <input
+                        type="radio"
+                        name="videoChoice"
+                        id="video-deepfake"
+                        checked={videoSourceType === 'deepfake'}
+                        onChange={() => handleVideoSourceTypeChange('deepfake')}
+                      />
+                      <div className="option-content">
+                        <label htmlFor="video-deepfake">Sử dụng video deepfake đã tạo</label>
+                        <select
+                          value={selectedVideoUrl}
+                          onChange={(e) => setSelectedVideoUrl(e.target.value)}
+                          disabled={videoSourceType !== 'deepfake' || loadingDeepfakeVideos}
+                        >
+                          {loadingDeepfakeVideos ? (
+                            <option>Đang tải...</option>
+                          ) : deepfakeVideos.length === 0 ? (
+                            <option>Chưa có video deepfake</option>
+                          ) : (
+                            deepfakeVideos.map(option => (
+                              <option key={option.id} value={option.video_url}>
+                                {option.name || `Video ${option.id}`}
+                              </option>
+                            ))
+                          )}
+                        </select>
+
+                        {/* Chỉ hiện nút "Tạo video deepfake mới" khi đã có video */}
+                        {videoSourceType === 'deepfake' && deepfakeVideos.length > 0 && (
+                          <button
+                            onClick={() => navigate('/create-content', { state: { activeTab: 'deepfake' } })}
+                            className="create-deepfake-btn"
+                          >
+                            <span>Tạo video deepfake mới</span>
+                          </button>
+                        )}
+
+                        {/* Hiện notice khi chưa có video */}
+                        {videoSourceType === 'deepfake' && deepfakeVideos.length === 0 && (
+                          <div className="no-video-notice">
+                            <p>💡 Bạn chưa có video deepfake nào. Tạo video ghép mặt mới ngay!</p>
+                            <button
+                              onClick={() => navigate('/create-content', { state: { activeTab: 'deepfake' } })}
+                              className="create-deepfake-btn"
+                            >
+                              <span className="material-symbols-outlined">face_retouching_natural</span>
+                              <span>Tạo video deepfake ngay</span>
+                            </button>
                           </div>
                         )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Custom Upload Option */}
+                  <div className="video-option">
+                    <div className="option-header">
+                      <input
+                        type="radio"
+                        name="videoChoice"
+                        id="video-custom"
+                        checked={videoSourceType === 'custom'}
+                        onChange={() => handleVideoSourceTypeChange('custom')}
+                      />
+                      <div className="option-content">
+                        <label htmlFor="video-custom">Upload video tùy chỉnh</label>
+                        <div className="file-input-wrapper">
+                          <label className="file-button" htmlFor="custom-video-input">
+                            Chọn tệp
+                          </label>
+                          <input
+                            type="text"
+                            className="file-name"
+                            value={selectedVideoFile?.name || 'Không có tệp nào được chọn'}
+                            readOnly
+                            disabled
+                          />
+                          <input
+                            id="custom-video-input"
+                            type="file"
+                            accept="video/*"
+                            onChange={handleVideoFileChange}
+                            disabled={videoSourceType !== 'custom'}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Video Preview */}
+                {(selectedVideoUrl || selectedVideoFile) && (
+                  <div className="video-preview-panel">
+                    <label>Preview:</label>
+                    <div className="preview-wrapper">
+                      <video
+                        ref={videoRef}
+                        src={selectedVideoUrl || (selectedVideoFile ? URL.createObjectURL(selectedVideoFile) : '')}
+                        onTimeUpdate={handleTimeUpdate}
+                        onLoadedMetadata={handleLoadedMetadata}
+                        onEnded={() => setIsPlaying(false)}
+                      />
+
+                      {!isPlaying && (
+                        <div className="play-overlay" onClick={handlePlayPause}>
+                          <button>
+                            <span className="material-symbols-outlined">play_circle</span>
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="video-controls">
+                        <button className="control-button" onClick={handlePlayPause}>
+                          <span className="material-symbols-outlined">
+                            {isPlaying ? 'pause' : 'play_arrow'}
+                          </span>
+                        </button>
+
+                        <div className="progress-bar" onClick={handleProgressClick}>
+                          <div
+                            className="progress"
+                            style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                          ></div>
+                        </div>
+
+                        <span className="time-display">
+                          {formatTime(currentTime)} / {formatTime(duration)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Voice Configuration */}
+          <div className="section-card">
+            <div className="section-header">
+              <span className="icon-wrapper">
+                <span className="material-symbols-outlined">record_voice_over</span>
+              </span>
+              <h2>Cấu hình Giọng Nói</h2>
+            </div>
+
+            <div className="section-content">
+              <div className="voice-mode-selector">
+                <div className="mode-option">
+                  <input
+                    type="radio"
+                    name="voiceMode"
+                    id="voice-preset"
+                    value="preset"
+                    checked={voiceMode === 'preset'}
+                    onChange={(e) => setVoiceMode(e.target.value as 'preset' | 'clone')}
+                  />
+                  <label htmlFor="voice-preset">Sử dụng giọng có sẵn</label>
+                </div>
+                <div className="mode-option">
+                  <input
+                    type="radio"
+                    name="voiceMode"
+                    id="voice-clone"
+                    value="clone"
+                    checked={voiceMode === 'clone'}
+                    onChange={(e) => setVoiceMode(e.target.value as 'preset' | 'clone')}
+                  />
+                  <label htmlFor="voice-clone">Giọng nói tải lên</label>
+                </div>
+              </div>
+
+              {voiceMode === 'preset' && (
+                <div className="voice-config-panel">
+                  <h3>Cấu hình giọng nói:</h3>
+                  <div className="voice-grid">
+                    <div className="voice-field">
+                      <label>Giới tính:</label>
+                      <select value={gender} onChange={(e) => setGender(e.target.value)}>
+                        {genderOptions.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="voice-field">
+                      <label>Vùng miền:</label>
+                      <select value={area} onChange={(e) => setArea(e.target.value)}>
+                        {areaOptions.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="voice-field">
+                      <label>Nhóm giọng:</label>
+                      <select value={group} onChange={(e) => setGroup(e.target.value)}>
+                        {groupOptions.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="voice-field">
+                      <label>Cảm xúc:</label>
+                      <select value={emotion} onChange={(e) => setEmotion(e.target.value)}>
+                        {emotionOptions.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {voiceMode === 'clone' && (
+                <div className="voice-config-panel voice-clone-panel">
+                  <h3>Giả lập giọng từ file mẫu:</h3>
+
+                  {/* Audio Mode Tabs */}
+                  <div className="audio-mode-tabs">
+                    <button
+                      className={audioMode === 'upload' ? 'active' : ''}
+                      onClick={() => setAudioMode('upload')}
+                    >
+                      <span className="material-symbols-outlined">upload_file</span>
+                      Upload Audio Mới
+                    </button>
+                    <button
+                      className={audioMode === 'existing' ? 'active' : ''}
+                      onClick={() => setAudioMode('existing')}
+                    >
+                      <span className="material-symbols-outlined">library_music</span>
+                      Chọn từ Thư viện ({myAudios.length})
+                    </button>
+                  </div>
+
+                  {/* Upload New Audio */}
+                  {audioMode === 'upload' && (
+                    <div className="audio-upload-section">
+                      <div className="reference-text-input">
+                        <label htmlFor="reference-text">
+                          <span className="material-symbols-outlined">text_fields</span>
+                          Reference Text (nội dung của audio mẫu):
+                          <span className="required">*</span>
+                        </label>
+                        <textarea
+                          id="reference-text"
+                          value={tempReferenceText}
+                          onChange={(e) => setTempReferenceText(e.target.value)}
+                          placeholder="Nhập chính xác nội dung mà người nói đọc trong file audio ..."
+                          rows={8}
+                        />
+                        <div className="char-count">
+                          {tempReferenceText.length}/1000 ký tự
+                        </div>
+                        <div className="info-text">
+                          <span className="material-symbols-outlined">info</span>
+                          Lưu ý: Reference text phải khớp với nội dung trong audio để có kết quả tốt nhất
+                        </div>
+                      </div>
+
+                      <div className="audio-file-input">
+                        <label htmlFor="audio-upload">
+                          <span className="material-symbols-outlined">audiotrack</span>
+                          Chọn file audio mẫu:
+                          <span className="required">*</span>
+                        </label>
+                        <div className="file-input-wrapper">
+                          <input
+                            id="audio-upload"
+                            type="file"
+                            accept="audio/*"
+                            onChange={handleReferenceAudioFileChange}
+                            disabled={isUploadingAudio || !tempReferenceText.trim()}
+                          />
+                        </div>
+                        {isUploadingAudio && (
+                          <div className="upload-progress">
+                            <span className="material-symbols-outlined spinning">progress_activity</span>
+                            Đang upload và xử lý audio...
+                          </div>
+                        )}
+                      </div>
+
+                      {referenceAudioUrl && referenceText && (
+                        <div className="audio-success-info">
+                          <span className="material-symbols-outlined">check_circle</span>
+                          <div className="success-details">
+                            <strong>Audio đã sẵn sàng!</strong>
+                            <p>Reference Text: "{referenceText}"</p>
+                            <audio src={referenceAudioUrl} controls />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Select Existing Audio */}
+                  {audioMode === 'existing' && (
+                    <div className="audio-library-section">
+                      {myAudios.length === 0 ? (
+                        <div className="empty-library">
+                          <span className="material-symbols-outlined">music_off</span>
+                          <p>Bạn chưa có audio nào trong thư viện</p>
+                          <button
+                            onClick={() => setAudioMode('upload')}
+                            className="switch-mode-btn"
+                          >
+                            <span className="material-symbols-outlined">upload</span>
+                            Upload audio đầu tiên
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="audio-grid">
+                          {myAudios.map((audio) => (
+                            <div
+                              key={audio.id}
+                              className={`audio-card ${referenceAudioUrl === audio.audio_url ? 'selected' : ''}`}
+                            >
+                              <div className="audio-card-header">
+                                <span className="material-symbols-outlined">audiotrack</span>
+                                <span className="audio-id">Audio #{audio.id}</span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteAudio(audio.id);
+                                  }}
+                                  className="delete-audio-btn"
+                                  title="Xóa audio"
+                                >
+                                  <span className="material-symbols-outlined">delete</span>
+                                </button>
+                              </div>
+
+                              <div className="audio-card-content">
+                                <div className="reference-text-display">
+                                  <label>Reference Text:</label>
+                                  <p>"{audio.reference_text}"</p>
+                                </div>
+
+                                <audio src={audio.audio_url} controls />
+
+                                <button
+                                  onClick={() => handleSelectExistingAudio(audio)}
+                                  className={`select-audio-btn ${referenceAudioUrl === audio.audio_url ? 'selected' : ''
+                                    }`}
+                                >
+                                  {referenceAudioUrl === audio.audio_url ? (
+                                    <>
+                                      <span className="material-symbols-outlined">check_circle</span>
+                                      Đã chọn
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="material-symbols-outlined">radio_button_unchecked</span>
+                                      Chọn audio này
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Selected Audio Info */}
+                  {referenceAudioUrl && referenceText && (
+                    <div className="selected-audio-summary">
+                      <div className="summary-header">
+                        <span className="material-symbols-outlined">speaker</span>
+                        <strong>Giọng đã chọn sẽ được sử dụng</strong>
+                      </div>
+                      <div className="summary-content">
+                        <p className="reference-text-summary">
+                          <span className="label">Reference Text:</span>
+                          "{referenceText}"
+                        </p>
                         <button
-                          type="button"
                           onClick={() => {
                             setReferenceAudioUrl('');
                             setReferenceText('');
                           }}
-                          style={{
-                            marginTop: 10,
-                            padding: '6px 12px',
-                            background: '#f44336',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: 4,
-                            cursor: 'pointer',
-                            fontSize: '13px'
-                          }}
+                          className="clear-selection-btn"
                         >
-                          🗑️ Xóa và upload lại
+                          <span className="material-symbols-outlined">close</span>
+                          Hủy chọn
                         </button>
                       </div>
-                    )} */}
-                  </div>
-                ) : (
-                  <div className="existing-audios-grid" style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                    gap: 15,
-                    maxHeight: 400,
-                    overflowY: 'auto',
-                    padding: 10,
-                    border: '1px solid #ddd',
-                    borderRadius: 5,
-                    background: 'white'
-                  }}>
-                    {myAudios.length === 0 ? (
-                      <p>Bạn chưa có audio nào. Hãy upload audio mới!</p>
-                    ) : (
-                      myAudios.map((audio) => (
-                        <div
-                          key={audio.id}
-                          style={{
-                            position: 'relative',
-                            padding: 15,
-                            border: referenceAudioUrl === audio.audio_url ? '3px solid #007bff' : '2px solid #ddd',
-                            borderRadius: 8,
-                            cursor: 'pointer',
-                            background: referenceAudioUrl === audio.audio_url ? '#e3f2fd' : 'white',
-                            transition: 'all 0.2s'
-                          }}
-                          onClick={() => handleSelectExistingAudio(audio)}
-                        >
-                          <audio
-                            src={audio.audio_url}
-                            controls
-                            style={{width: '100%', marginBottom: 10}}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <p style={{
-                            fontWeight: 'bold',
-                            marginBottom: 5,
-                            fontSize: '14px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {audio.name}
-                          </p>
-                          <p style={{
-                            fontSize: '12px',
-                            color: '#666',
-                            marginBottom: 5
-                          }}>
-                            {new Date(audio.uploaded_at).toLocaleDateString('vi-VN')}
-                          </p>
-                          {audio.reference_text && (
-                            <p style={{
-                              fontSize: '12px',
-                              color: '#333',
-                              fontStyle: 'italic',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical'
-                            }}>
-                              Text: {audio.reference_text}
-                            </p>
-                          )}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteAudio(audio.id);
-                            }}
-                            style={{
-                              position: 'absolute',
-                              top: 5,
-                              right: 5,
-                              background: 'rgba(244, 67, 54, 0.9)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: 28,
-                              height: 28,
-                              cursor: 'pointer',
-                              fontSize: 18
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {referenceAudioUrl && referenceText && (
-                  <div style={{
-                    marginTop: 15,
-                    padding: 15,
-                    background: '#e8f5e9',
-                    borderRadius: 4,
-                    border: '1px solid #4caf50'
-                  }}>
-                    <p style={{fontWeight: 'bold', color: '#2e7d32', marginBottom: 10}}>
-                      ✓ Audio đã chọn:
-                    </p>
-                    <audio src={referenceAudioUrl} controls style={{width: '100%', marginBottom: 10}} />
-                    <div>
-                      <strong>Reference Text:</strong>
-                      <p style={{marginTop: 5, fontSize: '14px'}}>{referenceText}</p>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div style={{marginTop: 20}}>
-            <button 
-              onClick={processAllSlidesAndCreateVideo} 
+          {/* Action Buttons */}
+          <div className="action-buttons">
+            <button
+              onClick={processAllSlidesAndCreateVideo}
               disabled={isProcessing || (!selectedVideoUrl && !selectedVideoFile)}
-              style={{
-                background: (isProcessing || (!selectedVideoUrl && !selectedVideoFile)) ? '#ccc' : '#28a745',
-                color: 'white',
-                padding: '12px 24px',
-                border: 'none',
-                borderRadius: 4,
-                cursor: (isProcessing || (!selectedVideoUrl && !selectedVideoFile)) ? 'not-allowed' : 'pointer',
-                fontWeight: 'bold',
-                fontSize: '16px'
-              }}
+              className="create-video-btn"
             >
-              {isProcessing ? '⏳ Đang xử lý...' : '🎬 Tạo Video Thuyết Trình'}
+              <span className="material-symbols-outlined">movie</span>
+              {isProcessing ? 'Đang xử lý...' : 'Tạo Video Thuyết Trình'}
             </button>
-            <button 
-              onClick={handleReset} 
-              style={{
-                marginLeft: 10,
-                padding: '12px 24px',
-                background: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: 4,
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              🔄 Reset
+            <button onClick={handleReset} className="reset-btn">
+              <span className="material-symbols-outlined">refresh</span>
+              Reset
             </button>
           </div>
 
           {processingMessage && (
-            <div style={{
-              marginTop: 15,
-              padding: 10,
-              background: '#fff3cd',
-              color: '#856404',
-              borderRadius: 4,
-              border: '1px solid #ffeaa7'
-            }}>
+            <div className="processing-message">
+              <span className="material-symbols-outlined">hourglass_empty</span>
               {processingMessage}
             </div>
           )}
-        </section>
+        </div>
       )}
 
       {/* Final result */}
       {finalVideoUrl && (
-        <section className="step-content result-container">
-          <h3>✓ Video thuyết trình hoàn chỉnh</h3>
-          <video src={finalVideoUrl} controls style={{width:'100%', maxWidth: 800, borderRadius: 8}} />
-          <div style={{marginTop: 15}}>
-            <button 
-              onClick={handleDownload} 
-              className="download-button"
-              style={{
-                padding: '12px 30px',
-                fontSize: '16px',
-                background: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: 4,
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
-              📥 Tải video xuống
-            </button>
-          </div>
-        </section>
+        <div className="result-section">
+          <h3>
+            <span className="material-symbols-outlined">check_circle</span>
+            Video thuyết trình hoàn chỉnh
+          </h3>
+          <video src={finalVideoUrl} controls />
+          <button onClick={handleDownload} className="download-btn">
+            <span className="material-symbols-outlined">download</span>
+            Tải video xuống
+          </button>
+        </div>
       )}
     </div>
   );
