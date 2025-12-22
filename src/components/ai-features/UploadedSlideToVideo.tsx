@@ -23,58 +23,33 @@ import {
 import { getMyAudios, uploadReferenceAudio, deleteUploadedAudio, UploadedAudio } from '../../services/uploadedAudioService';
 import { getMediaVideos, MediaVideo } from '../../services/mediaVideoService';
 import '../../styles/uploaded-slide-to-video.scss';
+import { useUploadedSlideToVideoStore } from '../../store/uploadedSlideToVideo.store';
 
 const UploadedSlideToVideo = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Presentation metadata
-  const [metadata, setMetadata] = useState<PresentationMetadata | null>(null);
-  const [slides, setSlides] = useState<SlideMetadata[]>([]);
-  const [savedSlideData, setSavedSlideData] = useState<SlideData[]>([]);
-
-  // User uploaded PPTX
-  const [userUploadedPptx, setUserUploadedPptx] = useState<File | null>(null);
-  const [isUploadingPptx, setIsUploadingPptx] = useState(false);
-
-  // Edit mode
-  const [editMode, setEditMode] = useState(false);
-  const [editedSlideData, setEditedSlideData] = useState<SlideData[]>([]);
+  const {
+    metadata, slides, editMode, editedSlideData, savedSlideData,
+    userUploadedPptx, isUploadingPptx,
+    selectedVideoFile, selectedVideoUrl, videoSourceType,
+    voiceMode, audioMode,
+    referenceAudioFile, referenceAudioUrl, referenceText, tempReferenceText,
+    gender, area, group, emotion,
+    isProcessing, processingMessage, finalVideoUrl, error,
+    setField, patch, resetAll, updateOriginalContent
+  } = useUploadedSlideToVideoStore();
   const [isSavingMetadata, setIsSavingMetadata] = useState(false);
 
-  // Video selection
-  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
-  const [selectedVideoUrl, setSelectedVideoUrl] = useState<string>('');
-
-  // Voice mode selection
-  const [voiceMode, setVoiceMode] = useState<'preset' | 'clone'>('preset');
-
-  // Mode 1: Voice Cloning
-  const [audioMode, setAudioMode] = useState<'upload' | 'existing'>('upload');
-  const [referenceAudioFile, setReferenceAudioFile] = useState<File | null>(null);
-  const [referenceAudioUrl, setReferenceAudioUrl] = useState<string>('');
-  const [referenceText, setReferenceText] = useState<string>('');
   const [myAudios, setMyAudios] = useState<UploadedAudio[]>([]);
   const [isUploadingAudio, setIsUploadingAudio] = useState<boolean>(false);
-  const [tempReferenceText, setTempReferenceText] = useState<string>('');
   const [showAudioWarning, setShowAudioWarning] = useState<boolean>(false);
   const [audioDuration, setAudioDuration] = useState<number>(0);
 
-  // Mode 2: Preset Voice
-  const [gender, setGender] = useState<string>('male');
-  const [area, setArea] = useState<string>('northern');
-  const [group, setGroup] = useState<string>('news');
-  const [emotion, setEmotion] = useState<string>('neutral');
-
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingMessage, setProcessingMessage] = useState('');
-  const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [loadingVideos, setLoadingVideos] = useState(true);
   const [videoOptions, setVideoOptions] = useState<MediaVideo[]>([]);
   const [deepfakeVideos, setDeepfakeVideos] = useState<MediaVideo[]>([]);
   const [loadingDeepfakeVideos, setLoadingDeepfakeVideos] = useState(false);
-  const [videoSourceType, setVideoSourceType] = useState<'sample' | 'deepfake' | 'custom'>('sample');
 
   // Video player states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -99,11 +74,11 @@ const UploadedSlideToVideo = () => {
 
         // Set default
         if (sampleResponse.videos.length > 0) {
-          setSelectedVideoUrl(sampleResponse.videos[0].video_url);
+          setField("selectedVideoUrl", sampleResponse.videos[0].video_url);
         }
       } catch (error) {
         console.error('Error loading videos:', error);
-        setError('Không thể tải danh sách video');
+        setField("error", 'Không thể tải danh sách video');
       } finally {
         setLoadingVideos(false);
         setLoadingDeepfakeVideos(false);
@@ -155,18 +130,18 @@ const UploadedSlideToVideo = () => {
 
   const handleUserUploadPptx = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setUserUploadedPptx(e.target.files[0]);
+      setField("userUploadedPptx", e.target.files[0]);
     }
   };
 
   const uploadPptx = async () => {
     if (!userUploadedPptx) {
-      setError('Vui lòng chọn file PPTX');
+      setField("error", 'Vui lòng chọn file PPTX');
       return;
     }
 
-    setIsUploadingPptx(true);
-    setError(null);
+    setField("isUploadingPptx", true);
+    setField("error", null);
 
     try {
       // 1. Extract images
@@ -194,7 +169,7 @@ const UploadedSlideToVideo = () => {
 
         console.log('📋 Uploaded slides:', uploadedSlides);
 
-        setSlides(uploadedSlides);
+        setField('slides', uploadedSlides);
 
         const defaultMetadata: PresentationMetadata = {
           title: userUploadedPptx.name.replace('.pptx', ''),
@@ -219,20 +194,20 @@ const UploadedSlideToVideo = () => {
 
         console.log('💾 Metadata with content:', defaultMetadata);
 
-        setMetadata(defaultMetadata);
+        setField('metadata', defaultMetadata);
 
         // ⭐ Truyền metadata vào function thay vì đọc từ state
         enterEditModeWithMetadata(uploadedSlides, defaultMetadata);
 
-        setError(null);
+        setField('error', null);
       } else {
         throw new Error('Không thể tách slides thành images');
       }
     } catch (err: any) {
       console.error('Upload PPTX error', err);
-      setError(err?.message || 'Lỗi khi upload PPTX');
+      setField('error',err?.message || 'Lỗi khi upload PPTX')
     } finally {
-      setIsUploadingPptx(false);
+      setField('isUploadingPptx', false);
     }
   };
 
@@ -253,9 +228,9 @@ const UploadedSlideToVideo = () => {
 
     console.log('✅ Final edit data:', editData);
 
-    setEditedSlideData(editData);
-    setSavedSlideData([...editData]);
-    setEditMode(true);
+    setField('editedSlideData', editData);
+    setField('savedSlideData', [...editData]);
+    setField('editMode', true);
   };
 
   // Giữ lại function cũ cho nút "Nhập script thuyết trình"
@@ -265,24 +240,14 @@ const UploadedSlideToVideo = () => {
     }
   };
 
-  const updateOriginalContent = (slideIndex: number, value: string) => {
-    setEditedSlideData(prev => {
-      const updated = [...prev];
-      if (updated[slideIndex]) {
-        updated[slideIndex] = { ...updated[slideIndex], original_content: value };
-      }
-      return updated;
-    });
-  };
-
   const handleSaveMetadata = async () => {
     if (!metadata || !editedSlideData.length) {
-      setError('Không có dữ liệu để lưu');
+      setField("error", "Không có dữ liệu để lưu!");
       return;
     }
 
     setIsSavingMetadata(true);
-    setError(null);
+    setField("error", null);
 
     try {
       const updatedMetadata = {
@@ -293,36 +258,36 @@ const UploadedSlideToVideo = () => {
       const result = await saveSlideMetadata(updatedMetadata);
 
       if (result.success) {
-        setMetadata(prev => prev ? { ...prev, slide_data: updatedMetadata } : null);
-        setSavedSlideData([...editedSlideData]);
-        setEditMode(false);
-        setError(null);
+        setField("metadata", metadata ? { ...metadata, slide_data: updatedMetadata } : null);
+        setField("savedSlideData", [...editedSlideData]);
+        setField("editMode", false);
+        setField("error", null);
       } else {
         throw new Error(result.message || 'Lỗi khi lưu metadata');
       }
     } catch (err: any) {
       console.error('Save metadata error', err);
-      setError(err?.message || 'Lỗi khi lưu metadata');
+      setField('error', err?.message || 'Lỗi khi lưu metadata');
     } finally {
       setIsSavingMetadata(false);
     }
   };
 
   const handleCancelEdit = () => {
-    setEditedSlideData([...savedSlideData]); //  Khôi phục content đã lưu
-    setEditMode(false);
+    setField("editedSlideData", [...savedSlideData]);
+    setField("editMode", false);
   };
 
   const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedVideoFile(e.target.files[0]);
-      setSelectedVideoUrl('');
+      setField("selectedVideoFile", e.target.files[0]);
+      setField("selectedVideoUrl", '');
     }
   };
 
   const handleVideoPresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedVideoUrl(e.target.value);
-    setSelectedVideoFile(null);
+    setField('selectedVideoUrl', e.target.value);
+    setField("selectedVideoFile", null);
   };
 
   const handleReferenceAudioFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -330,14 +295,14 @@ const UploadedSlideToVideo = () => {
     if (!file) return;
 
     if (!file.type.startsWith('audio/')) {
-      setError('Vui lòng chọn file audio');
+      setField('error', 'Vui lòng chọn file audio!');
       e.target.value = ''; // Reset input
       return;
     }
 
     // Kiểm tra phải có reference text
     if (!tempReferenceText.trim()) {
-      setError('Vui lòng nhập Reference Text trước khi upload audio');
+      setField('error', 'Vui lòng nhập Reference Text trước khi upload audio');
       e.target.value = ''; // Reset input
       return;
     }
@@ -362,7 +327,7 @@ const UploadedSlideToVideo = () => {
         };
         audio.onerror = () => {
           URL.revokeObjectURL(objectUrl);
-          setError('Không thể đọc file audio');
+          setField('error', "Không thể đọc tệp tin âm thanh");
           e.target.value = '';
           reject(new Error('Cannot read audio'));
         };
@@ -372,20 +337,20 @@ const UploadedSlideToVideo = () => {
       return;
     }
 
-    setReferenceAudioFile(file);
+    setField('referenceAudioFile', file);
 
     // Upload ngay lập tức
     setIsUploadingAudio(true);
-    setError(null);
+    setField('error', null);
     try {
       const uploadedAudio = await uploadReferenceAudio(file, tempReferenceText);
-      setReferenceAudioUrl(uploadedAudio.audio_url);
-      setReferenceText(uploadedAudio.reference_text);
+      setField('referenceAudioUrl', uploadedAudio.audio_url);
+      setField('referenceText', uploadedAudio.reference_text);
       await loadMyAudios();
-      setTempReferenceText(''); // Reset temp text
+      setField('tempReferenceText', '');
       e.target.value = ''; // Reset input để có thể chọn file khác
     } catch (err) {
-      setError('Không thể upload audio. Vui lòng thử lại.');
+      setField('error', "Không thể tải lên âm thanh. Vui lòng thử lại!");
       console.error('Upload error:', err);
       e.target.value = ''; // Reset input
     } finally {
@@ -394,22 +359,22 @@ const UploadedSlideToVideo = () => {
   };
 
   const handleSelectExistingAudio = (audio: UploadedAudio) => {
-    setReferenceAudioUrl(audio.audio_url);
-    setReferenceText(audio.reference_text);
+    setField('referenceAudioUrl', audio.audio_url);
+    setField('referenceText', audio.reference_text);
   };
 
   const handleDeleteAudio = async (audioId: number) => {
-    if (!window.confirm('Bạn có chắc muốn xóa audio này?')) return;
-
+    if (!window.confirm('Bạn có chắc muốn xóa âm thanh này?')) return;
+    
     try {
       await deleteUploadedAudio(audioId);
       await loadMyAudios();
       if (myAudios.find(aud => aud.id === audioId)?.audio_url === referenceAudioUrl) {
-        setReferenceAudioUrl('');
-        setReferenceText('');
+        setField('referenceAudioUrl','');
+        setField('referenceText', '');
       }
     } catch (err) {
-      setError('Không thể xóa audio. Vui lòng thử lại.');
+      setField('error', 'Không thể xóa âm thanh. Vui lòng thử lại!');
       console.error('Delete error:', err);
     }
   };
@@ -440,11 +405,11 @@ const UploadedSlideToVideo = () => {
         const response = await getMediaVideos('sample'); // Chỉ lấy video sample
         setVideoOptions(response.videos);
         if (response.videos.length > 0) {
-          setSelectedVideoUrl(response.videos[0].video_url);
+          setField('selectedVideoUrl', response.videos[0].video_url);
         }
       } catch (error) {
         console.error('Error loading sample videos:', error);
-        setError('Không thể tải danh sách video mẫu');
+        setField('error', 'Không thể tải danh sách video mẫu');
       } finally {
         setLoadingVideos(false);
       }
@@ -470,33 +435,33 @@ const UploadedSlideToVideo = () => {
 
   const processAllSlidesAndCreateVideo = async () => {
     if (!metadata || slides.length === 0) {
-      setError('Chưa có slide để xử lý');
+      setField('error', "Chưa có silde để xử lý.");
       return;
     }
 
     if (!selectedVideoUrl && !selectedVideoFile) {
-      setError('Vui lòng chọn video mẫu hoặc upload video');
+      setField('error', "Vui lòng chọn video mẫu hoặc tải lên video");
       return;
     }
 
     if (voiceMode === 'clone' && !referenceAudioUrl) {
-      setError('Vui lòng chọn hoặc upload file audio mẫu cho chế độ voice cloning');
+      setField("error", "Vui lòng chọn hoặc tải lên tệp tin âm thanh!");
       return;
     }
 
     if (voiceMode === 'clone' && !referenceText.trim()) {
-      setError('Vui lòng nhập reference text cho audio đã chọn');
+      setField("error", "Vui lòng nhập văn bản cho âm thanh đã chọn");
       return;
     }
 
-    setError(null);
-    setIsProcessing(true);
+    setField('error', null);
+    setField('isProcessing', true);
 
     const composedSlideUrls: string[] = [];
     const slideDataList = metadata.slide_data.slides;
 
     try {
-      setProcessingMessage('Đang upload files...');
+      setField('processingMessage', "Đang tải lên tệp tin...");
       const videoUrl = await uploadSelectedVideo();
 
       // Upload reference audio if in clone mode
@@ -509,7 +474,7 @@ const UploadedSlideToVideo = () => {
         const slide = slides[i];
         const slideData = slideDataList.find(sd => sd.slide_number === slide.slide_number);
 
-        setProcessingMessage(`Xử lý slide ${i + 1}/${slides.length}: ${slideData?.title || 'Untitled'}...`);
+        setField("processingMessage", `Đang xử lý slide ${i + 1}/${slides.length}...`);
 
         const narrationText = slideData?.original_content || '';
 
@@ -554,61 +519,40 @@ const UploadedSlideToVideo = () => {
       }
 
       // Concat
-      setProcessingMessage('Ghép các đoạn slide lại thành video hoàn chỉnh...');
+      setField('processingMessage', 'Đang ghép các đoạn slide lại thành video hoàn chỉnh...');
       const finalResp = await concatVideos(composedSlideUrls);
       if (finalResp && finalResp.result_url) {
-        setProcessingMessage('Đang upload video lên Cloudinary...');
+        setField("processingMessage", "Đang tải video lên hệ thống...");
         const cloudinaryUrl = await uploadVideoToCloudinary(finalResp.result_url);
-        setFinalVideoUrl(cloudinaryUrl);
+        setField("finalVideoUrl", cloudinaryUrl);
         try {
           if (!user?.username) {
             throw new Error('Không xác định được user');
           }
           await saveVideo(cloudinaryUrl, user.username);
-          setProcessingMessage('Hoàn tất. Video đã được lưu vào hệ thống.');
+          setField('processingMessage', 'Hoàn tất. Video đã được lưu vào hệ thống.');
         } catch (saveError) {
           console.error('Lỗi khi lưu video:', saveError);
-          setProcessingMessage('Video đã tạo xong nhưng không lưu được vào hệ thống.');
+          setField('processingMessage', 'Video đã hoàn thành nhưng không lưu được vào hệ thống.');
         }
       } else {
         throw new Error('Không tạo được video cuối cùng');
       }
     } catch (err: any) {
       console.error('processAllSlidesAndCreateVideo error', err);
-      setError(err?.message || 'Lỗi khi xử lý các slide');
+      setField('error', err?.message || 'Lỗi khi xử lý các slide')
     } finally {
-      setIsProcessing(false);
+      setField('isProcessing', false);
     }
   };
 
-  const handleReset = () => {
-    setMetadata(null);
-    setSlides([]);
-    setUserUploadedPptx(null);
-    setEditMode(false);
-    setEditedSlideData([]);
-    setSelectedVideoFile(null);
-    setSelectedVideoUrl(videoOptions[0]?.video_url || '');
-    setVoiceMode('preset');
-    setAudioMode('upload');
-    setReferenceAudioFile(null);
-    setReferenceAudioUrl('');
-    setReferenceText('');
-    setTempReferenceText('');
-    setGender('male');
-    setArea('northern');
-    setGroup('news');
-    setEmotion('neutral');
-    setFinalVideoUrl(null);
-    setError(null);
-    setProcessingMessage('');
-  };
+  const handleReset = () => { resetAll() };
 
   const handleDownload = async () => {
     if (!finalVideoUrl) return;
 
     try {
-      setError(null);
+      setField('error', null);
       const loadingMessage = document.createElement('div');
       loadingMessage.className = 'download-loading';
       loadingMessage.textContent = 'Đang chuẩn bị tải xuống...';
@@ -633,23 +577,23 @@ const UploadedSlideToVideo = () => {
       }, 100);
     } catch (err) {
       console.error('Lỗi khi tải file:', err);
-      setError('Không thể tải xuống video. Vui lòng thử lại sau.');
+      setField('error', 'Không thể tải xuống video. Vui lòng thử lại sau.');
       document.querySelector('.download-loading')?.remove();
     }
   };
 
-  const handleVideoSourceTypeChange = (type: 'sample' | 'deepfake' | 'custom') => {
-    setVideoSourceType(type);
-    setSelectedVideoFile(null);
-
-    if (type === 'sample' && videoOptions.length > 0) {
-      setSelectedVideoUrl(videoOptions[0].video_url);
-    } else if (type === 'deepfake' && deepfakeVideos.length > 0) {
-      setSelectedVideoUrl(deepfakeVideos[0].video_url);
-    } else if (type === 'custom') {
-      setSelectedVideoUrl('');
-    }
-  };
+const handleVideoSourceTypeChange = (type: 'sample' | 'deepfake' | 'custom') => {
+  setField('videoSourceType', type);
+  setField('selectedVideoFile', null);
+  
+  if (type === 'sample' && videoOptions.length > 0) {
+    setField('selectedVideoUrl', videoOptions[0].video_url);
+  } else if (type === 'deepfake' && deepfakeVideos.length > 0) {
+    setField('selectedVideoUrl', deepfakeVideos[0].video_url);
+  } else if (type === 'custom') {
+    setField('selectedVideoUrl', '');
+  }
+};
 
   // Video player handlers
   const handlePlayPause = () => {
@@ -781,7 +725,7 @@ const UploadedSlideToVideo = () => {
             <button
               onClick={() => {
                 setShowAudioWarning(false);
-                setError(null);
+                setField('error', null);
               }}
               className="close-btn"
             >
@@ -852,7 +796,7 @@ const UploadedSlideToVideo = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setUserUploadedPptx(null);
+                        setField("userUploadedPptx", null);
                       }}
                       className="remove-file-btn"
                     >
@@ -958,7 +902,7 @@ const UploadedSlideToVideo = () => {
                         <label htmlFor="video-deepfake">Sử dụng video deepfake đã tạo</label>
                         <select
                           value={selectedVideoUrl}
-                          onChange={(e) => setSelectedVideoUrl(e.target.value)}
+                          onChange={(e) => setField('selectedVideoUrl', e.target.value)}
                           disabled={videoSourceType !== 'deepfake' || loadingDeepfakeVideos}
                         >
                           {loadingDeepfakeVideos ? (
@@ -1101,7 +1045,7 @@ const UploadedSlideToVideo = () => {
                     id="voice-preset"
                     value="preset"
                     checked={voiceMode === 'preset'}
-                    onChange={(e) => setVoiceMode(e.target.value as 'preset' | 'clone')}
+                    onChange={(e) => setField('voiceMode', e.target.value as 'preset' | 'clone')}
                   />
                   <label htmlFor="voice-preset">Sử dụng giọng có sẵn</label>
                 </div>
@@ -1112,7 +1056,7 @@ const UploadedSlideToVideo = () => {
                     id="voice-clone"
                     value="clone"
                     checked={voiceMode === 'clone'}
-                    onChange={(e) => setVoiceMode(e.target.value as 'preset' | 'clone')}
+                    onChange={(e) => setField('voiceMode', e.target.value as 'preset' | 'clone')}
                   />
                   <label htmlFor="voice-clone">Giọng nói tải lên</label>
                 </div>
@@ -1124,7 +1068,7 @@ const UploadedSlideToVideo = () => {
                   <div className="voice-grid">
                     <div className="voice-field">
                       <label>Giới tính:</label>
-                      <select value={gender} onChange={(e) => setGender(e.target.value)}>
+                      <select value={gender} onChange={(e) => setField('gender', e.target.value)}>
                         {genderOptions.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
@@ -1133,7 +1077,7 @@ const UploadedSlideToVideo = () => {
 
                     <div className="voice-field">
                       <label>Vùng miền:</label>
-                      <select value={area} onChange={(e) => setArea(e.target.value)}>
+                      <select value={area} onChange={(e) => setField('area', e.target.value)}>
                         {areaOptions.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
@@ -1142,7 +1086,7 @@ const UploadedSlideToVideo = () => {
 
                     <div className="voice-field">
                       <label>Nhóm giọng:</label>
-                      <select value={group} onChange={(e) => setGroup(e.target.value)}>
+                      <select value={group} onChange={(e) => setField('group', e.target.value)}>
                         {groupOptions.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
@@ -1151,7 +1095,7 @@ const UploadedSlideToVideo = () => {
 
                     <div className="voice-field">
                       <label>Cảm xúc:</label>
-                      <select value={emotion} onChange={(e) => setEmotion(e.target.value)}>
+                      <select value={emotion} onChange={(e) => setField('emotion', e.target.value)}>
                         {emotionOptions.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
@@ -1169,14 +1113,14 @@ const UploadedSlideToVideo = () => {
                   <div className="audio-mode-tabs">
                     <button
                       className={audioMode === 'upload' ? 'active' : ''}
-                      onClick={() => setAudioMode('upload')}
+                      onClick={() => setField('audioMode', 'upload')}
                     >
                       <span className="material-symbols-outlined">upload_file</span>
                       Upload Audio Mới
                     </button>
                     <button
                       className={audioMode === 'existing' ? 'active' : ''}
-                      onClick={() => setAudioMode('existing')}
+                      onClick={() => setField('audioMode', 'existing')}
                     >
                       <span className="material-symbols-outlined">library_music</span>
                       Chọn từ Thư viện ({myAudios.length})
@@ -1195,7 +1139,7 @@ const UploadedSlideToVideo = () => {
                         <textarea
                           id="reference-text"
                           value={tempReferenceText}
-                          onChange={(e) => setTempReferenceText(e.target.value)}
+                          onChange={(e) => setField('tempReferenceText', e.target.value)}
                           placeholder="Nhập chính xác nội dung mà người nói đọc trong file audio ..."
                           rows={8}
                         />
@@ -1252,7 +1196,7 @@ const UploadedSlideToVideo = () => {
                           <span className="material-symbols-outlined">music_off</span>
                           <p>Bạn chưa có audio nào trong thư viện</p>
                           <button
-                            onClick={() => setAudioMode('upload')}
+                            onClick={() => setField('audioMode', 'upload')}
                             className="switch-mode-btn"
                           >
                             <span className="material-symbols-outlined">upload</span>
@@ -1328,8 +1272,8 @@ const UploadedSlideToVideo = () => {
                         </p>
                         <button
                           onClick={() => {
-                            setReferenceAudioUrl('');
-                            setReferenceText('');
+                            setField('referenceAudioUrl', '');
+                            setField('referenceText', '');
                           }}
                           className="clear-selection-btn"
                         >
