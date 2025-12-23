@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getMyAudios, deleteUploadedAudio, uploadReferenceAudio, updateReferenceText, UploadedAudio } from '../../services/uploadedAudioService';
-import { MdDelete, MdFileUpload, MdAudiotrack, MdClose, MdEdit, MdSave } from 'react-icons/md';
+import { MdDelete, MdFileUpload, MdAudiotrack, MdClose, MdEdit, MdSave, MdCloudUpload } from 'react-icons/md';
+import './AudioLibrary.scss';
 
-const AudioLibrary: React.FC = () => {
+interface AudioLibraryProps {
+  searchQuery?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+const AudioLibrary: React.FC<AudioLibraryProps> = ({ searchQuery = '', startDate = '', endDate = '' }) => {
   const [audios, setAudios] = useState<UploadedAudio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -14,10 +21,24 @@ const AudioLibrary: React.FC = () => {
   const [uploadReferenceText, setUploadReferenceText] = useState('');
   const [editingTextId, setEditingTextId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState('');
+  const [deleteAudioId, setDeleteAudioId] = useState<number | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     loadAudios();
   }, []);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showPreview || isDeleteModalOpen || showUploadModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showPreview, isDeleteModalOpen, showUploadModal]);
 
   const loadAudios = async () => {
     try {
@@ -73,17 +94,29 @@ const AudioLibrary: React.FC = () => {
     }
   };
 
-  const handleDelete = async (audioId: number) => {
-    if (!window.confirm('Bạn có chắc muốn xóa audio này?')) return;
+  const openDeleteModal = (audioId: number) => {
+    setDeleteAudioId(audioId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const cancelDelete = () => {
+    setIsDeleteModalOpen(false);
+    setDeleteAudioId(null);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteAudioId === null) return;
 
     try {
       setError(null);
-      await deleteUploadedAudio(audioId);
+      await deleteUploadedAudio(deleteAudioId);
       await loadAudios();
-      if (selectedAudio?.id === audioId) {
+      if (selectedAudio?.id === deleteAudioId) {
         setSelectedAudio(null);
         setShowPreview(false);
       }
+      setIsDeleteModalOpen(false);
+      setDeleteAudioId(null);
     } catch (err) {
       setError('Không thể xóa audio. Vui lòng thử lại.');
       console.error('Delete error:', err);
@@ -120,14 +153,55 @@ const AudioLibrary: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return {
+      date: date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }),
+      time: date.toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
+    };
   };
+
+  // Filter and search logic
+  const filteredAudios = useMemo(() => {
+    let filtered = [...audios];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(audio =>
+        audio.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply date range filter
+    if (startDate || endDate) {
+      filtered = filtered.filter(audio => {
+        const uploadDate = new Date(audio.uploaded_at);
+        uploadDate.setHours(0, 0, 0, 0);
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (uploadDate < start) return false;
+        }
+        
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (uploadDate > end) return false;
+        }
+        
+        return true;
+      });
+    }
+
+    return filtered;
+  }, [audios, searchQuery, startDate, endDate]);
 
   if (isLoading) {
     return (
@@ -141,18 +215,20 @@ const AudioLibrary: React.FC = () => {
   return (
     <div className="audio-library">
       <div className="library-header">
-        <div className="header-content">
+        {/* <div className="header-content">
           <MdAudiotrack className="header-icon" />
           <div>
             <h2>Thư viện giọng nói</h2>
-            <p>Quản lý các audio reference đã upload ({audios.length} audio)</p>
+            <p>Quản lý các file audio đã upload ({filteredAudios.length} audio)</p>
           </div>
-        </div>
+        </div> */}
         
-        <button className="upload-btn" onClick={handleUploadClick}>
-          <MdFileUpload />
-          <span>Tải audio lên</span>
-        </button>
+        {isUploading && (
+          <div className="upload-btn uploading">
+            <div className="spinner"></div>
+            <span>Đang tải lên...</span>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -172,22 +248,56 @@ const AudioLibrary: React.FC = () => {
             <span>Tải audio lên</span>
           </button>
         </div>
+      ) : filteredAudios.length === 0 ? (
+        <div className="empty-state">
+          <MdAudiotrack className="empty-icon" />
+          <h3>Không tìm thấy kết quả</h3>
+          <p>Không có audio nào phù hợp với bộ lọc của bạn</p>
+        </div>
       ) : (
         <div className="audios-grid">
-          {audios.map((audio) => (
-            <div key={audio.id} className="audio-card">
+          {/* Upload Card */}
+          <div className="upload-card" onClick={handleUploadClick}>
+            <div className="upload-icon-wrapper">
+              <MdCloudUpload />
+            </div>
+            <h3>Tải audio lên</h3>
+            <p>Kéo thả hoặc click để chọn file<br />(MP3, WAV)</p>
+            <button className="upload-btn-card" type="button">
+              Chọn file
+            </button>
+          </div>
+
+          {/* Audio Cards */}
+          {filteredAudios.map((audio) => {const dateInfo = formatDate(audio.uploaded_at);
+            return (            <div key={audio.id} className="audio-card">
               <div className="audio-icon-wrapper" onClick={() => handleAudioClick(audio)}>
                 <MdAudiotrack className="audio-icon" />
-                <div className="audio-overlay">
-                  <span>Nghe audio</span>
-                </div>
               </div>
               
+              <button 
+                className="delete-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openDeleteModal(audio.id);
+                }}
+                title="Xóa"
+              >
+                <MdDelete />
+              </button>
+              
               <div className="audio-info">
-                <h4 className="audio-name" title={audio.name}>
-                  {audio.name}
-                </h4>
-                <p className="audio-date">{formatDate(audio.uploaded_at)}</p>
+                <div className="info-header">
+                  <h4 className="audio-name" title={audio.name}>
+                    {audio.name.length > 25 ? audio.name.substring(0, 25) + '...' : audio.name}
+                  </h4>
+                </div>
+                <div className="audio-date">
+                  <span className="status-dot"></span>
+                  <span>{dateInfo.date}</span>
+                  <span className="separator">•</span>
+                  <span>{dateInfo.time}</span>
+                </div>
                 
                 {editingTextId === audio.id ? (
                   <div className="reference-text-editor">
@@ -221,19 +331,9 @@ const AudioLibrary: React.FC = () => {
                   </div>
                 )}
               </div>
-
-              <button
-                className="delete-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(audio.id);
-                }}
-                title="Xóa audio"
-              >
-                <MdDelete />
-              </button>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 
@@ -309,32 +409,38 @@ const AudioLibrary: React.FC = () => {
             
             <div className="preview-info">
               <h3>{selectedAudio.name}</h3>
-              <p>Tải lên: {formatDate(selectedAudio.uploaded_at)}</p>
+              <p>Tải lên: {formatDate(selectedAudio.uploaded_at).date} {formatDate(selectedAudio.uploaded_at).time}</p>
               
               <div className="reference-text-section">
                 <h4>Reference Text:</h4>
                 <p>{selectedAudio.reference_text || 'Chưa có reference text'}</p>
               </div>
-              
-              <div className="preview-actions">
-                <a
-                  href={selectedAudio.audio_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-view"
-                >
-                  Mở file gốc
-                </a>
-                <button
-                  className="btn-delete"
-                  onClick={() => {
-                    setShowPreview(false);
-                    handleDelete(selectedAudio.id);
-                  }}
-                >
-                  <MdDelete /> Xóa audio
-                </button>
-              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="video-modal delete-modal" onClick={cancelDelete}>
+          <div className="modal-content delete-confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-header">
+              <span className="material-icons-round delete-icon">warning</span>
+                <h4>Xóa audio</h4>
+            </div>
+            <div className="delete-modal-body">
+              <p>Bạn có chắc chắn muốn xóa audio này không?</p>
+              <p className="warning-text">Hành động này không thể hoàn tác.</p>
+            </div>
+            <div className="delete-modal-actions">
+              <button className="btn-cancel" onClick={cancelDelete}>
+                <span className="material-icons-round">close</span>
+                Hủy
+              </button>
+              <button className="btn-confirm-delete" onClick={confirmDelete}>
+                <span className="material-icons-round">delete</span>
+                Xác nhận
+              </button>
             </div>
           </div>
         </div>

@@ -21,7 +21,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           </Content>
 
           <Footer className="text-center text-sm text-text-muted-light bg-transparent">
-            <p>© 2025 LecVidGen Admin. Bản quyền thuộc về DATN</p>
+            <p>© 2025 LecVidGen Admin.</p>
           </Footer>
         </Layout>
       </Layout>

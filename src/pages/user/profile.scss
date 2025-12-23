@@ -110,8 +110,8 @@
                             transition: border-color 150ms ease, box-shadow 150ms ease;
                             padding: 8px 12px;
                             &:focus {
-                                border-color: var(--primary, #0ea5e9);
-                                box-shadow: 0 0 0 1px var(--primary, #0ea5e9);
+                                border-color: var(--primary, #8B5CF6);
+                                box-shadow: 0 0 0 1px var(--primary, #8B5CF6);
                             }
                             @media (min-width: 640px) {
                                 font-size: 0.875rem;  
@@ -140,9 +140,6 @@
                                 background-color 150ms ease,
                                 color 150ms ease,
                                 box-shadow 150ms ease;
-                            &:hover {
-                                background-color: #0ea5e9;
-                            }
                             &:focus {
                                 outline: none;
                                 box-shadow:
