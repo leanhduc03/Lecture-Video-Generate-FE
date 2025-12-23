@@ -1,39 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { deepfakeVideoWithUrls, checkDeepfakeStatus } from '../../services/aiService';
-import { getMyImages, uploadSourceImage, UploadedImage } from '../../services/uploadedImageService';
-import { getMediaVideos, uploadMediaVideoFile, createMediaVideo, saveDeepfakeVideo, MediaVideo } from '../../services/mediaVideoService';
+import { getMyImages, uploadSourceImage } from '../../services/uploadedImageService';
+import { getMediaVideos, uploadMediaVideoFile, createMediaVideo, saveDeepfakeVideo } from '../../services/mediaVideoService';
 import '../../styles/deepfake.scss';
+import { useDeepfakeVideoStore } from '../../store/deepfakeVideo.store';
 
 const DeepfakeVideo = () => {
-  // Source (Image) states
-  const [sourceMode, setSourceMode] = useState<'upload' | 'existing'>('upload');
-  const [sourceFile, setSourceFile] = useState<File | null>(null);
-  const [sourcePreview, setSourcePreview] = useState<string | null>(null);
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
-  const [myImages, setMyImages] = useState<UploadedImage[]>([]);
-  const [isUploadingSource, setIsUploadingSource] = useState<boolean>(false);
-  
-  // Target (Video) states
-  const [targetMode, setTargetMode] = useState<'upload' | 'existing'>('upload');
-  const [targetFile, setTargetFile] = useState<File | null>(null);
-  const [targetPreview, setTargetPreview] = useState<string | null>(null);
-  const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
-  const [myVideos, setMyVideos] = useState<MediaVideo[]>([]);
-  const [isUploadingTarget, setIsUploadingTarget] = useState<boolean>(false);
-  
-  // Processing states
-  const [resultVideo, setResultVideo] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [processingProgress, setProcessingProgress] = useState<string>('Đang chuẩn bị...');
-  const [isSavingVideo, setIsSavingVideo] = useState<boolean>(false);
-  const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
+  const {
+    sourceMode, selectedImageUrl, myImages, isUploadingSource,
+    targetMode, targetFile, selectedVideoUrl, myVideos, isUploadingTarget,
+    resultVideo, isLoading, error, jobId, processingProgress, isSavingVideo, savedSuccess,
+    isPlaying, currentTime, duration,
+    setField, patch
+  } = useDeepfakeVideoStore();
 
-  // Video player states
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -44,7 +24,7 @@ const DeepfakeVideo = () => {
   const loadMyImages = async () => {
     try {
       const images = await getMyImages();
-      setMyImages(images);
+      setField('myImages', images);
     } catch (err) {
       console.error('Error loading images:', err);
     }
@@ -53,7 +33,7 @@ const DeepfakeVideo = () => {
   const loadMyVideos = async () => {
     try {
       const response = await getMediaVideos('uploaded');
-      setMyVideos(response.videos);
+      setField('myVideos', response.videos);
     } catch (err) {
       console.error('Error loading videos:', err);
     }
@@ -62,25 +42,16 @@ const DeepfakeVideo = () => {
   const handleSourceChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSourceFile(file);
-      // Không set sourcePreview nữa
-      // const reader = new FileReader();
-      // reader.onloadend = () => {
-      //   setSourcePreview(reader.result as string);
-      // };
-      // reader.readAsDataURL(file);
-
-      setIsUploadingSource(true);
-      setError(null);
+      patch({ sourceFile: file, isUploadingSource: true, error: null });
       try {
         const uploadedImage = await uploadSourceImage(file);
-        setSelectedImageUrl(uploadedImage.image_url);
+        setField('selectedImageUrl', uploadedImage.image_url);
         await loadMyImages();
       } catch (err) {
-        setError('Không thể upload ảnh. Vui lòng thử lại.');
+        setField('error', 'Không thể tải lên ảnh. Vui lòng thử lại.');
         console.error('Upload error:', err);
       } finally {
-        setIsUploadingSource(false);
+        setField('isUploadingSource', false);
       }
     }
   };
@@ -88,16 +59,7 @@ const DeepfakeVideo = () => {
   const handleTargetChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setTargetFile(file);
-      // Không set targetPreview nữa
-      // const reader = new FileReader();
-      // reader.onloadend = () => {
-      //   setTargetPreview(reader.result as string);
-      // };
-      // reader.readAsDataURL(file);
-
-      setIsUploadingTarget(true);
-      setError(null);
+      patch({ targetFile: file, isUploadingTarget: true, error: null });
       try {
         const uploadResponse = await uploadMediaVideoFile(file);
         
@@ -108,66 +70,57 @@ const DeepfakeVideo = () => {
         };
         
         const savedVideo = await createMediaVideo(videoData);
-        setSelectedVideoUrl(savedVideo.video_url);
+        setField('selectedVideoUrl', savedVideo.video_url);
         await loadMyVideos();
       } catch (err) {
-        setError('Không thể upload video. Vui lòng thử lại.');
+        setField('error', 'Không thể tải lên video. Vui lòng thử lại.');
         console.error('Upload error:', err);
       } finally {
-        setIsUploadingTarget(false);
+        setField('isUploadingTarget', false);
       }
     }
   };
 
   const handleSelectExistingImage = (imageUrl: string) => {
-    setSelectedImageUrl(imageUrl);
-    // Không set sourcePreview để tránh hiển thị ở upload zone
-    // setSourcePreview(imageUrl);
+    setField('selectedImageUrl', imageUrl);
   };
 
   const handleSelectExistingVideo = (videoUrl: string) => {
-    setSelectedVideoUrl(videoUrl);
-    // Không set targetPreview để tránh hiển thị ở upload zone
-    // setTargetPreview(videoUrl);
+    setField('selectedVideoUrl', videoUrl);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedImageUrl || !selectedVideoUrl) {
-      setError('Vui lòng chọn ảnh nguồn và video đích');
+      setField('error', 'Vui lòng chọn ảnh nguồn và video đích');
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
-    setResultVideo(null);
-    setSavedSuccess(false);
-    setProcessingProgress('Đang xử lý...');
+    patch({ isLoading: true, error: null, resultVideo: null, savedSuccess: false, processingProgress: 'Đang xử lý...' });
 
     try {
       const jobId = await deepfakeVideoWithUrls(selectedImageUrl, selectedVideoUrl);
-      setJobId(jobId);
-      setProcessingProgress('Đã bắt đầu xử lý video...');
+      patch({ jobId: jobId, processingProgress: 'Đang chuẩn bị...' });
     } catch (err) {
-      setError('Có lỗi xảy ra khi xử lý video. Vui lòng thử lại sau.');
+      setField('error', 'Có lỗi xảy ra khi xử lý video. Vui lòng thử lại sau.');
       console.error('Deepfake error:', err);
     } finally {
-      setIsLoading(false);
+      setField('isLoading', false);
     }
   };
 
   useEffect(() => {
     const autoSaveVideo = async () => {
       if (resultVideo && !savedSuccess && !isSavingVideo) {
-        setIsSavingVideo(true);
+        setField('isSavingVideo', true);
         try {
           await saveDeepfakeVideo(resultVideo);
-          setSavedSuccess(true);
+          setField('savedSuccess', true);
         } catch (err) {
           console.error('Error auto-saving video:', err);
-          setError('Không thể lưu video tự động. Bạn có thể tải xuống thủ công.');
+          setField('error', 'Không thể lưu video tự động. Vui lòng tải xuống thủ công.');
         } finally {
-          setIsSavingVideo(false);
+          setField('isSavingVideo', false);
         }
       }
     };
@@ -194,11 +147,11 @@ const DeepfakeVideo = () => {
 
           if (result.status === 'processing') {
             if (progressCounter < progressMessages.length) {
-              setProcessingProgress(progressMessages[progressCounter]);
+              setField('processingProgress', progressMessages[progressCounter]);
               progressCounter++;
             }
           } else if (result.status === 'completed' && result.result_url) {
-            setResultVideo(result.result_url);
+            setField('resultVideo', result.result_url);
             clearInterval(intervalId);
           }
         } catch (err) {
@@ -216,7 +169,7 @@ const DeepfakeVideo = () => {
     if (!resultVideo) return;
 
     try {
-      setError(null);
+      setField('error', null);
       const loadingMessage = document.createElement('div');
       loadingMessage.className = 'download-loading';
       loadingMessage.textContent = 'Đang chuẩn bị tải xuống...';
@@ -239,7 +192,7 @@ const DeepfakeVideo = () => {
       }, 100);
     } catch (err) {
       console.error('Lỗi khi tải file:', err);
-      setError('Không thể tải xuống video. Vui lòng thử lại sau.');
+      setField('error', 'Không thể tải xuống video. Vui lòng thử lại sau.');
       document.querySelector('.download-loading')?.remove();
     }
   };
@@ -252,19 +205,19 @@ const DeepfakeVideo = () => {
       } else {
         videoRef.current.play();
       }
-      setIsPlaying(!isPlaying);
+      setField('isPlaying', !isPlaying);
     }
   };
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+      setField('currentTime', videoRef.current.currentTime);
     }
   };
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      setDuration(videoRef.current.duration);
+      setField('duration', videoRef.current.duration);
     }
   };
 
@@ -284,9 +237,7 @@ const DeepfakeVideo = () => {
 
   // Reset video khi đổi source
   React.useEffect(() => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
+    patch({ isPlaying: false, currentTime: 0, duration: 0 });
   }, [selectedVideoUrl, targetFile]);
 
   return (
@@ -315,7 +266,7 @@ const DeepfakeVideo = () => {
                 <button
                   type="button"
                   className={`mode-btn ${sourceMode === 'upload' ? 'active' : ''}`}
-                  onClick={() => setSourceMode('upload')}
+                  onClick={() => setField('sourceMode', 'upload')}
                 >
                   <span className="material-symbols-outlined">upload</span>
                   Tải ảnh lên
@@ -323,7 +274,7 @@ const DeepfakeVideo = () => {
                 <button
                   type="button"
                   className={`mode-btn ${sourceMode === 'existing' ? 'active' : ''}`}
-                  onClick={() => setSourceMode('existing')}
+                  onClick={() => setField('sourceMode', 'existing')}
                 >
                   <span className="material-symbols-outlined">collections</span>
                   Chọn từ thư viện
@@ -361,7 +312,7 @@ const DeepfakeVideo = () => {
                       <p>Chưa có ảnh nào</p>
                       <button
                         type="button"
-                        onClick={() => setSourceMode('upload')}
+                        onClick={() => setField('sourceMode', 'upload')}
                         className="switch-mode-btn"
                       >
                         Upload ảnh đầu tiên
@@ -403,7 +354,7 @@ const DeepfakeVideo = () => {
                 <button
                   type="button"
                   className={`mode-btn ${targetMode === 'upload' ? 'active' : ''}`}
-                  onClick={() => setTargetMode('upload')}
+                  onClick={() => setField('targetMode', 'upload')}
                 >
                   <span className="material-symbols-outlined">movie</span>
                   Tải video lên
@@ -411,7 +362,7 @@ const DeepfakeVideo = () => {
                 <button
                   type="button"
                   className={`mode-btn ${targetMode === 'existing' ? 'active' : ''}`}
-                  onClick={() => setTargetMode('existing')}
+                  onClick={() => setField('targetMode', 'existing')}
                 >
                   <span className="material-symbols-outlined">video_library</span>
                   Video có sẵn
@@ -449,7 +400,7 @@ const DeepfakeVideo = () => {
                       <p>Chưa có video nào</p>
                       <button
                         type="button"
-                        onClick={() => setTargetMode('upload')}
+                        onClick={() => setField('targetMode', 'upload')}
                         className="switch-mode-btn"
                       >
                         Upload video đầu tiên
@@ -512,7 +463,7 @@ const DeepfakeVideo = () => {
                         src={selectedVideoUrl}
                         onTimeUpdate={handleTimeUpdate}
                         onLoadedMetadata={handleLoadedMetadata}
-                        onEnded={() => setIsPlaying(false)}
+                        onEnded={() => setField('isPlaying', false)}
                       />
                       {!isPlaying && (
                         <div className="play-overlay" onClick={handlePlayPause}>
@@ -602,15 +553,9 @@ const DeepfakeVideo = () => {
             </button>
             <button
               onClick={() => {
-                setJobId(null);
-                setResultVideo(null);
-                setSavedSuccess(false);
-                setSourceFile(null);
-                setSourcePreview(null);
-                setSelectedImageUrl(null);
-                setTargetFile(null);
-                setTargetPreview(null);
-                setSelectedVideoUrl(null);
+                patch({ jobId: null, resultVideo: null, savedSuccess: false, sourceFile: null,
+                  selectedImageUrl: null, targetFile: null, selectedVideoUrl: null
+                });
               }}
               className="new-deepfake-btn"
             >
