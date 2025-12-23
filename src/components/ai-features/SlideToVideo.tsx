@@ -103,26 +103,17 @@ const SlideToVideo = () => {
 
   const areaOptions = [
     { value: 'northern', label: 'Miền Bắc' },
-    { value: 'central', label: 'Miền Trung' },
     { value: 'southern', label: 'Miền Nam' }
   ];
 
   const groupOptions = [
-    { value: 'news', label: 'Tin tức' },
-    { value: 'story', label: 'Kể chuyện' },
     { value: 'audiobook', label: 'Thuyết minh, đọc sách' },
-    { value: 'interview', label: 'Phỏng vấn' },
-    { value: 'review', label: 'Bình luận, đánh giá' }
+    { value: 'interview', label: 'Phỏng vấn' }
   ];
 
   const emotionOptions = [
     { value: 'neutral', label: 'Trung tính' },
-    { value: 'serious', label: 'Nghiêm túc' },
-    { value: 'monotone', label: 'Đơn điệu' },
-    { value: 'surprised', label: 'Ngạc nhiên' },
-    { value: 'happy', label: 'Vui vẻ' },
-    { value: 'sad', label: 'Buồn' },
-    { value: 'angry', label: 'Tức giận' }
+    { value: 'serious', label: 'Nghiêm túc' }
   ];
 
   // --- Step 1: Generate slides từ content ---

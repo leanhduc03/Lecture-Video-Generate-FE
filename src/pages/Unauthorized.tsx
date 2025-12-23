@@ -45,7 +45,7 @@ const Unauthorized = () => {
         </div>
         
         <footer className="unauthorized-panel__footer">
-          <p>© 2025 LectureStudio. Bản quyền thuộc về DATN.</p>
+          <p>© 2025 LectureStudio.</p>
         </footer>
       </div>
     </div>

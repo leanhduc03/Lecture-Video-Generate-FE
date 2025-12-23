@@ -92,16 +92,14 @@ const Profile = () => {
           <Col xs={24} xl={8}>
             <Card
               className="rounded-2xl shadow-sm border border-border-light overflow-hidden bg-surface-light"
-              bodyStyle={{ paddingTop: 48, paddingBottom: 24, paddingInline: 24 }}
+              styles={{ body: { paddingTop: 48, paddingBottom: 24, paddingInline: 24 } }}
               cover={
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-24 relative">
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 h-24 relative">
                   <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2">
-                    <div className="w-20 h-20 rounded-full bg-white p-1 shadow-lg">
-                      <Avatar
-                        src={"https://lh3.googleusercontent.com/a-/default-user"}
-                        alt="Avatar"
-                        className="w-full h-full"
-                      />
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-purple-600 to-pink-600 overflow-hidden ring-2 ring-white shadow-lg">
+                      <div className="h-full w-full flex items-center justify-center text-white font-bold text-3xl">
+                        {user?.username?.charAt(0).toUpperCase() || 'U'}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -111,7 +109,7 @@ const Profile = () => {
                 <Title level={4} className="!mb-1 text-gray-900">
                   {user?.username || "Chưa có tên"}
                 </Title>
-                <Text className="text-primary text-sm font-medium">
+                <Text className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent text-sm font-medium">
                   {roleLabel}
                 </Text>
               </div>
@@ -160,11 +158,11 @@ const Profile = () => {
           <Col xs={24} xl={16} className="max-[1200px]:mt-8 xl:mt-0">
             <Card
               className="rounded-2xl shadow-sm border border-border-light bg-surface-light"
-              bodyStyle={{ padding: 24 }}
+              styles={{ body: { padding: 24 } }}
             >
               <div className="flex items-center mb-6">
-                <div className="bg-blue-100 text-primary p-2 rounded-lg mr-3">
-                  <LockTwoTone twoToneColor="#1677ff" />
+                <div className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-600 p-2 rounded-lg mr-3">
+                  <LockTwoTone twoToneColor="#9333ea" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">
                   Cập nhật thông tin
@@ -255,6 +253,7 @@ const Profile = () => {
                     icon={<SaveOutlined />}
                     value={confirmPassword}
                     disabled={loading}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 border-0"
                   >
                     {loading ? 'Đang cập nhật...' : 'Cập nhật thông tin'}
                   </Button>
@@ -265,67 +264,6 @@ const Profile = () => {
         </Row>
       </div>
     </div>
-      {/* <div className="profile-container">
-      <section className="board">
-          <h1 className="board-title">Thông tin cá nhân</h1>
-          <p className="board-description">Quản lý thông tin của bạn và cập nhật mật khẩu.</p>
-      </section>
-      
-      {success && <div className="success-message">Cập nhật thông tin thành công!</div>}
-      {error && <div className="error-message">{error}</div>}
-
-      <div className="profile-wrapper">
-          <div className="profile-info">
-              <div className="profile-info-wrapper">
-                  <h2 className="header-title">Thông tin tài khoản</h2>
-                  <div className="content">
-                      <div>
-                          <h3 className="field-info">Tên đăng nhập</h3>
-                          <p className="field-value">{user?.username}</p>
-                      </div>
-                      <div>
-                          <h3 className="field-info">Vai trò</h3>
-                          <p className="field-value">{user?.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}</p>
-                      </div>
-                      <div>
-                          <h3 className="field-info">Ngày tạo</h3>
-                          <p className="field-value">{new Date(user?.created_at || '').toLocaleDateString('vi-VN')}</p>
-                      </div>
-                  </div>
-              </div>
-          </div>
-          <div className="profile-form">
-              <div className="profile-form-wrapper">
-                  <h2 className="header-title">Cập nhật thông tin</h2>
-                  <form className="form" onSubmit={handleSubmit}>
-                      <div>
-                          <label className="form-label">Email</label>
-                          <div className="input-wrapper">
-                              <input className="input-field" id="email" placeholder="you@example.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required/>
-                          </div>
-                      </div>
-                      <div>
-                          <label className="form-label">Mật khẩu mới (để trống nếu không đổi)</label>
-                          <div className="input-wrapper">
-                              <input className="input-field" id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}/>
-                          </div>
-                      </div>
-                      <div>
-                          <label className="form-label">Xác nhận mật khẩu mới</label>
-                          <div className="input-wrapper">
-                              <input className="input-field" id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={!password} />
-                          </div>
-                      </div>
-                      <div className="btn-wrapper">
-                          <button className="btn-submit" type="submit" disabled={loading}>
-                              {loading ? 'Đang cập nhật...' : 'Cập nhật thông tin'}
-                          </button>
-                      </div>
-                  </form>
-              </div>
-          </div>
-      </div>
-    </div> */}
     </>
   );
 };

@@ -23,7 +23,7 @@ const NotFound = () => {
           </main>
           <footer className="mt-auto py-6">
               <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
-                  <p>© 2025 LecVidGen. Bản quyền thuộc về DATN.</p>
+                  <p>© 2025 LecVidGen.</p>
               </div>
           </footer>
       </div>

@@ -18,7 +18,7 @@ const UserLayout = ({ children }: UserLayoutProps) => {
           {children}
         </main>
         <footer className="footer">
-          <div className='footer-content'><p>&copy; 2025 LectureStudio. Bản quyền thuộc về DATN</p></div>
+          <div className='footer-content'><p>&copy; 2025 LectureStudio.</p></div>
         </footer>
       </div>
     </div>
