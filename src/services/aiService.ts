@@ -25,6 +25,7 @@ export const generateSpeech = async (text: string, payload: any) => {
     const response = await axios.post(`${TTS_NGROK_URL}/vietvoice`, payload, {
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
     });
 
