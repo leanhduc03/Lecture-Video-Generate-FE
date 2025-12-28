@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine AS build
+FROM node:18-alpine as build
 
 WORKDIR /app
 
@@ -7,12 +7,22 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --only=production
 
 # Copy source code
 COPY . .
 
-# Build app
+# Build arguments
+ARG REACT_APP_API_BASE_URL
+ARG REACT_APP_CLOUDINARY_CLOUD_NAME
+ARG REACT_APP_CLOUDINARY_UPLOAD_PRESET
+
+# Set environment variables
+ENV REACT_APP_API_BASE_URL=$REACT_APP_API_BASE_URL
+ENV REACT_APP_CLOUDINARY_CLOUD_NAME=$REACT_APP_CLOUDINARY_CLOUD_NAME
+ENV REACT_APP_CLOUDINARY_UPLOAD_PRESET=$REACT_APP_CLOUDINARY_UPLOAD_PRESET
+
+# Build application
 RUN npm run build
 
 # Production stage
@@ -21,7 +31,7 @@ FROM nginx:alpine
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy build files
+# Copy built app
 COPY --from=build /app/build /usr/share/nginx/html
 
 # Expose port
