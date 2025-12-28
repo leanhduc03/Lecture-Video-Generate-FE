@@ -196,7 +196,7 @@ const UploadedSlideToVideo = () => {
       }
     } catch (err: any) {
       console.error('Upload PPTX error', err);
-      setField('error',err?.message || 'Lỗi khi upload PPTX')
+      setField('error', err?.message || 'Lỗi khi upload PPTX')
     } finally {
       setField('isUploadingPptx', false);
     }
@@ -356,12 +356,12 @@ const UploadedSlideToVideo = () => {
 
   const handleDeleteAudio = async (audioId: number) => {
     if (!window.confirm('Bạn có chắc muốn xóa âm thanh này?')) return;
-    
+
     try {
       await deleteUploadedAudio(audioId);
       await loadMyAudios();
       if (myAudios.find(aud => aud.id === audioId)?.audio_url === referenceAudioUrl) {
-        setField('referenceAudioUrl','');
+        setField('referenceAudioUrl', '');
         setField('referenceText', '');
       }
     } catch (err) {
@@ -498,6 +498,9 @@ const UploadedSlideToVideo = () => {
         if (!fakelipResp || !fakelipResp.result_url) {
           throw new Error(`Fakelip thất bại cho slide ${slide.slide_number}`);
         }
+        if (i < slides.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
         const lipVideoUrl = fakelipResp.result_url;
 
         // Combine
@@ -517,7 +520,7 @@ const UploadedSlideToVideo = () => {
         const cloudinaryUrl = await uploadVideoToCloudinary(finalResp.result_url);
         setField("finalVideoUrl", cloudinaryUrl);
         try {
-          if (!user?.username||!user?.id) {
+          if (!user?.username || !user?.id) {
             throw new Error('Không xác định được user');
           }
           await saveVideo(cloudinaryUrl, user.username);
@@ -573,18 +576,18 @@ const UploadedSlideToVideo = () => {
     }
   };
 
-const handleVideoSourceTypeChange = (type: 'sample' | 'deepfake' | 'custom') => {
-  setField('videoSourceType', type);
-  setField('selectedVideoFile', null);
-  
-  if (type === 'sample' && videoOptions.length > 0) {
-    setField('selectedVideoUrl', videoOptions[0].video_url);
-  } else if (type === 'deepfake' && deepfakeVideos.length > 0) {
-    setField('selectedVideoUrl', deepfakeVideos[0].video_url);
-  } else if (type === 'custom') {
-    setField('selectedVideoUrl', '');
-  }
-};
+  const handleVideoSourceTypeChange = (type: 'sample' | 'deepfake' | 'custom') => {
+    setField('videoSourceType', type);
+    setField('selectedVideoFile', null);
+
+    if (type === 'sample' && videoOptions.length > 0) {
+      setField('selectedVideoUrl', videoOptions[0].video_url);
+    } else if (type === 'deepfake' && deepfakeVideos.length > 0) {
+      setField('selectedVideoUrl', deepfakeVideos[0].video_url);
+    } else if (type === 'custom') {
+      setField('selectedVideoUrl', '');
+    }
+  };
 
   // Video player handlers
   const handlePlayPause = () => {

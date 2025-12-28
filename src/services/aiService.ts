@@ -2,9 +2,6 @@ import axios from 'axios';
 import { API_CONFIG, buildCloudinaryUrl } from '../config/api';
 
 const API_URL = API_CONFIG.BASE_URL;
-const TTS_NGROK_URL = API_CONFIG.TTS_NGROK_URL;
-const DEEPFAKE_NGROK_URL = API_CONFIG.DEEPFAKE_NGROK_URL;
-const FAKELIP_NGROK_URL = API_CONFIG.FAKELIP_NGROK_URL;
 
 export const uploadVoiceSample = async (file: File) => {
   const formData = new FormData();
@@ -22,18 +19,18 @@ export const generateSpeech = async (text: string, payload: any) => {
   try {
     console.log('Gửi yêu cầu TTS với payload:', payload);
 
-    const response = await axios.post(`${TTS_NGROK_URL}/vietvoice`, payload, {
+    // Thay đổi: gọi qua backend thay vì trực tiếp
+    const response = await axios.post(`${API_URL}/upload/process-tts`, payload, {
       headers: {
         'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
       },
     });
 
     console.log('TTS API response:', response.data);
 
-    if (response.data && response.data.result_url) {
+    if (response.data && response.data.audio_file_url) {
       return {
-        audio_file_url: response.data.result_url,
+        audio_file_url: response.data.audio_file_url,
         message: response.data.message
       };
     } else {
@@ -162,7 +159,8 @@ export const processFakelip = async (audioUrl: string, videoUrl: string): Promis
   try {
     console.log('Gửi yêu cầu fakelip với:', { audio_url: audioUrl, video_url: videoUrl });
 
-    const response = await axios.post(`${FAKELIP_NGROK_URL}/fakelip`, {
+    // Thay đổi: gọi qua backend thay vì trực tiếp
+    const response = await axios.post(`${API_URL}/upload/process-fakelip`, {
       audio_url: audioUrl,
       video_url: videoUrl
     });
@@ -180,26 +178,6 @@ export const processFakelip = async (audioUrl: string, videoUrl: string): Promis
   }
 };
 
-// Giữ lại hàm upload trực tiếp lên Cloudinary cho trường hợp cần thiết
-export const uploadToCloudinary = async (file: File, fileType: string): Promise<string> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', API_CONFIG.CLOUDINARY_UPLOAD_PRESET);
-
-  const uploadUrl = buildCloudinaryUrl(fileType as 'image' | 'video');
-
-  const response = await fetch(uploadUrl, {
-    method: 'POST',
-    body: formData
-  });
-
-  if (!response.ok) {
-    throw new Error('Lỗi khi upload file lên Cloudinary');
-  }
-
-  const data = await response.json();
-  return data.secure_url;
-};
 
 // ---- Thêm hàm mới cho SlideToVideo workflow ----
 export const uploadPptx = async (file: File) => {
