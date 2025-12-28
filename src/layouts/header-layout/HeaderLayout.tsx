@@ -59,7 +59,7 @@ const HeaderLayout = () => {
                             to="/my-deepfake-videos" 
                             className="text-slate-600 hover:text-purple-600 font-medium transition-colors relative group"
                         >
-                            Video Deepfake
+                            Video ghép mặt
                             <span className="absolute -bottom-[21px] left-0 w-0 h-0.5 bg-purple-600 group-hover:w-full transition-all duration-300"></span>
                         </Link>
                         <Link 

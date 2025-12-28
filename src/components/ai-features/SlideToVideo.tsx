@@ -588,7 +588,7 @@ const SlideToVideo = () => {
         const cloudinaryUrl = await uploadVideoToCloudinary(finalResp.result_url);
         setField('finalVideoUrl', cloudinaryUrl);
         try {
-          if (!user?.username) {
+          if (!user?.username||!user?.id) {
             throw new Error('Không xác định được user');
           }
           await saveVideo(cloudinaryUrl, user.username);
@@ -918,7 +918,7 @@ const SlideToVideo = () => {
                   className="flex items-center gap-2 bg-[#17a2b8] hover:bg-[#138496] text-white px-4 py-2.5 rounded-md shadow-sm text-sm font-medium transition-colors"
                 >
                   <span className="material-symbols-outlined">edit_note</span>
-                  Nhập script thuyết trình
+                  Nhập nội dung thuyết trình
                 </button>
               </div>
               <div className="space-y-3">
@@ -1022,7 +1022,7 @@ const SlideToVideo = () => {
                         onChange={() => handleVideoSourceTypeChange('deepfake')}
                       />
                       <div className="option-content">
-                        <label htmlFor="video-deepfake">Sử dụng video deepfake đã tạo</label>
+                        <label htmlFor="video-deepfake">Sử dụng video ghép mặt đã tạo</label>
                         <select
                           value={selectedVideoUrl}
                           onChange={(e) => setField('selectedVideoUrl', e.target.value)}

@@ -517,7 +517,7 @@ const UploadedSlideToVideo = () => {
         const cloudinaryUrl = await uploadVideoToCloudinary(finalResp.result_url);
         setField("finalVideoUrl", cloudinaryUrl);
         try {
-          if (!user?.username) {
+          if (!user?.username||!user?.id) {
             throw new Error('Không xác định được user');
           }
           await saveVideo(cloudinaryUrl, user.username);

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { MdHistory, MdMenuBook, MdMovieCreation, MdClose, MdFolder, MdPlayCircle, MdAddCircle, MdSchedule, MdUploadFile } from "react-icons/md";
+import { MdHistory, MdMenuBook, MdMovieCreation, MdClose, MdFolder, MdPlayCircle, MdAddCircle, MdSchedule, MdUploadFile, MdEditDocument } from "react-icons/md";
 import imageIllustration from '../../static/image/image.png';
 
 const Dashboard = () => {
@@ -189,21 +189,21 @@ const Dashboard = () => {
             </h3>
             
             <div className="flex flex-col gap-3">
-              <button 
+                <button 
                 className="flex items-center gap-3 p-4 border-2 border-slate-200 rounded-xl bg-white hover:border-purple-600 hover:bg-purple-50 transition-all hover:translate-x-1"
                 onClick={handleChooseSlideToVideo}
-              >
-                <span className="text-2xl">📝</span>
+                >
+                <MdEditDocument className="text-2xl text-purple-600" />
                 <span className="text-sm font-medium text-slate-900">Tạo PowerPoint từ văn bản</span>
-              </button>
-              
-              <button 
+                </button>
+                
+                <button 
                 className="flex items-center gap-3 p-4 border-2 border-slate-200 rounded-xl bg-white hover:border-purple-600 hover:bg-purple-50 transition-all hover:translate-x-1"
                 onClick={handleChooseUploadedSlide}
-              >
-                <span className="text-2xl">📤</span>
+                >
+                <MdUploadFile className="text-2xl text-purple-600" />
                 <span className="text-sm font-medium text-slate-900">Upload PowerPoint</span>
-              </button>
+                </button>
             </div>
           </div>
         </div>

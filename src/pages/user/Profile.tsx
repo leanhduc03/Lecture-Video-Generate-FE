@@ -8,6 +8,7 @@ import {
   LockTwoTone,
   SaveOutlined,
 } from "@ant-design/icons";
+import "./profile.scss";
 
 const { Title, Text } = Typography;
 
@@ -74,8 +75,8 @@ const Profile = () => {
 
   return (
     <>
-    <div className="bg-background-light font-sans text-gray-800 transition-colors duration-200">
-      <div className="p-6 min-h-[calc(100vh-4rem)] flex flex-col">
+    <div className="bg-transparent font-sans text-gray-800 transition-colors duration-200">
+      <div className="p-6 min-h-[calc(40vh-4rem)] flex flex-col">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
@@ -92,7 +93,7 @@ const Profile = () => {
           <Col xs={24} xl={8}>
             <Card
               className="rounded-2xl shadow-sm border border-border-light overflow-hidden bg-surface-light"
-              styles={{ body: { paddingTop: 48, paddingBottom: 24, paddingInline: 24 } }}
+              styles={{ body: { paddingTop: 58, paddingBottom: 47, paddingInline: 24 } }}
               cover={
                 <div className="bg-gradient-to-r from-purple-600 to-pink-600 h-24 relative">
                   <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2">
@@ -106,7 +107,7 @@ const Profile = () => {
               }
             >
               <div className="text-center">
-                <Title level={4} className="!mb-1 text-gray-900">
+                <Title level={4} className="!mb-1 text-gray-900 pb-57px">
                   {user?.username || "Chưa có tên"}
                 </Title>
                 <Text className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent text-sm font-medium">

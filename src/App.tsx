@@ -39,7 +39,6 @@ import Unauthorized from './pages/Unauthorized';
 import './App.css';
 import './styles/create-content.css';
 import PageLoading from './pages/common/Loading';
-import SampleVideoManagement from './pages/admin/SampleVideoManagement';
 
 function App() {
   const { isAuthenticated, isAdmin, loading } = useAuth();
@@ -136,13 +135,6 @@ function App() {
         <ProtectedRoute requireAdmin>
           <AdminLayout>
             <UserProfile />
-          </AdminLayout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/sample-videos" element={
-        <ProtectedRoute requireAdmin>
-          <AdminLayout>
-            <SampleVideoManagement />
           </AdminLayout>
         </ProtectedRoute>
       } />
