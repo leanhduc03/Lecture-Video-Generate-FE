@@ -84,6 +84,30 @@
   }
 }
 
+.login-submit-btn {
+  background-color: #9333ea !important; 
+  border-color: #9333ea !important;
+
+  &:hover,
+  &:focus {
+    background-color: #7e22ce !important; 
+    border-color: #7e22ce !important;
+  }
+
+  &:active {
+    background-color: #6b21a8 !important;
+    border-color: #6b21a8 !important;
+  }
+
+  &:disabled,
+  &.ant-btn-disabled {
+    background-color: #e9d5ff !important; 
+    border-color: #e9d5ff !important;
+    color: #a855f7 !important;
+    cursor: not-allowed;
+  }
+}
+
 .error-message {
   margin-top: 0.5rem;
   font-size: 0.875rem;

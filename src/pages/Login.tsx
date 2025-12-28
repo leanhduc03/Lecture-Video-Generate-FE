@@ -60,7 +60,7 @@ const Login = () => {
           </Form.Item>
         </div>
         <div className="login-panel__submit">
-          <Button type="primary" htmlType="submit" disabled={loading}>
+          <Button className="login-submit-btn" type="primary" htmlType="submit" disabled={loading}>
             {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </Button>
         </div>

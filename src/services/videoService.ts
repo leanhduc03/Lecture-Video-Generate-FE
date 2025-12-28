@@ -1,59 +1,63 @@
 import axios from 'axios';
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG, buildApiUrl } from '../config/api';
 
 const API_URL = API_CONFIG.BASE_URL;
 
-export const saveVideo = async (videoUrl: string, username: string) => {
+
+const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
-  
-  if (!token) {
-    throw new Error('Chưa đăng nhập');
-  }
-  
-  if (!username) {
-    throw new Error('Không xác định được username');
-  }
-   
-  const response = await axios.post(
-    `${API_URL}/videos/`,
-    {
-      video_url: videoUrl,
-      username: username
-    },
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+  return {
+    'Authorization': `Bearer ${token}`
+  };
+};
+
+export const saveVideo = async (videoUrl: string, username: string): Promise<void> => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = user.id; // Lấy user_id từ localStorage
+
+    if (!userId) {
+      throw new Error('User ID not found');
     }
-  );
-  return response.data;
+
+    const response = await fetch(buildApiUrl('/videos'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ 
+        video_url: videoUrl, 
+        username: username,
+        user_id: userId  // Thêm user_id
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save video');
+    }
+  } catch (error) {
+    console.error('Error saving video:', error);
+    throw error;
+  }
 };
 
 export const getMyVideos = async () => {
-  const token = localStorage.getItem('token');
   const response = await axios.get(`${API_URL}/videos/my-videos`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
+    headers: getAuthHeaders()
   });
   return response.data;
 };
 
 export const getAllVideos = async () => {
-  const token = localStorage.getItem('token');
   const response = await axios.get(`${API_URL}/videos/all`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
+    headers: getAuthHeaders()
   });
   return response.data;
 };
 
 export const deleteVideo = async (videoId: number) => {
-  const token = localStorage.getItem('token');
   await axios.delete(`${API_URL}/videos/${videoId}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
+    headers: getAuthHeaders()
   });
 };
