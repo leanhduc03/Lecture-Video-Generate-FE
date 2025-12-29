@@ -287,15 +287,28 @@ const SlideToVideo = () => {
     const editData: SlideData[] = uploadedSlides.map((slide, idx) => {
       const slideData = metadataToUse.slide_data.slides[idx];
 
+      let finalContent = slideData?.rewritten_content || slideData?.original_content || '';
+      
+      if (Array.isArray(finalContent)) {
+        finalContent = finalContent.join('\n');
+      }
+
+      console.log(`Slide ${idx} content:`, finalContent); // Debug
+
       return {
         slide_number: idx,
         title: slide.title || `Slide ${idx + 1}`,
         content: slideData?.content || [],
-        original_content: slideData?.original_content || ''
+        original_content: finalContent
       };
     });
 
-    patch({ editedSlideData: editData, savedSlideData: [...editData], editModeSlides: uploadedSlides, editMode: true});
+    patch({ 
+      editedSlideData: editData, 
+      savedSlideData: [...editData], 
+      editModeSlides: uploadedSlides, 
+      editMode: true
+    });
   };
 
   const enterEditMode = (newSlideCount?: number) => {
@@ -310,11 +323,17 @@ const SlideToVideo = () => {
       const originalSlide = originalSlides.find(s => s.slide_number === i);
 
       if (originalSlide) {
+        let finalContent = originalSlide.rewritten_content || originalSlide.original_content || '';
+
+        if (Array.isArray(finalContent)) {
+          finalContent = finalContent.join('\n');
+        }
+        
         editData.push({
           slide_number: i,
           title: originalSlide.title,
           content: originalSlide.content,
-          original_content: originalSlide.original_content
+          original_content: finalContent
         });
       } else {
         editData.push({
@@ -326,8 +345,15 @@ const SlideToVideo = () => {
       }
     }
 
-    patch({ editedSlideData: editData, savedSlideData: [...editData], editModeSlides: slides, editMode: true});
+    patch({ 
+      editedSlideData: editData, 
+      savedSlideData: [...editData], 
+      editModeSlides: slides, 
+      editMode: true
+    });
   };
+
+
   const handleCancelEdit = () => {
     patch({ editedSlideData: [...savedSlideData], editModeSlides: [], editMode: false });
   };

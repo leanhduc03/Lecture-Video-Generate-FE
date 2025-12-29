@@ -16,6 +16,7 @@ export interface SlideData {
   title: string;
   content: string[];
   original_content: string;
+  rewritten_content?: string;
 }
 
 export interface PresentationMetadata {

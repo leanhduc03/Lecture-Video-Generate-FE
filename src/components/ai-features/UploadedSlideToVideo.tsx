@@ -138,12 +138,12 @@ const UploadedSlideToVideo = () => {
       // 1. Extract images
       console.log('📸 Extracting images...');
       const imageResult = await uploadPptxAndExtractSlidesImage(userUploadedPptx);
-      console.log('✅ Image result:', imageResult);
+      console.log('Image result:', imageResult);
 
       // 2. Extract text content
       console.log('📝 Extracting text...');
       const textResult = await extractPptxText(userUploadedPptx);
-      console.log('✅ Text result:', textResult);
+      console.log('Text result:', textResult);
 
       if (imageResult.success && imageResult.slides) {
         const uploadedSlides: SlideMetadata[] = imageResult.slides.map((img: any, idx: number) => {
@@ -187,7 +187,7 @@ const UploadedSlideToVideo = () => {
 
         setField('metadata', defaultMetadata);
 
-        // ⭐ Truyền metadata vào function thay vì đọc từ state
+        // Truyền metadata vào function thay vì đọc từ state
         enterEditModeWithMetadata(uploadedSlides, defaultMetadata);
 
         setField('error', null);
@@ -202,12 +202,11 @@ const UploadedSlideToVideo = () => {
     }
   };
 
-  // ⭐ Function mới nhận metadata làm parameter
   const enterEditModeWithMetadata = (uploadedSlides: SlideMetadata[], metadataToUse: PresentationMetadata) => {
     const editData: SlideData[] = uploadedSlides.map((slide, idx) => {
       const slideData = metadataToUse.slide_data.slides[idx];
 
-      console.log(`Slide ${idx} content:`, slideData?.original_content); // Debug
+      console.log(`Slide ${idx} content:`, slideData?.original_content);
 
       return {
         slide_number: idx,
@@ -217,14 +216,13 @@ const UploadedSlideToVideo = () => {
       };
     });
 
-    console.log('✅ Final edit data:', editData);
+    console.log('Final edit data:', editData);
 
     setField('editedSlideData', editData);
     setField('savedSlideData', [...editData]);
     setField('editMode', true);
   };
 
-  // Giữ lại function cũ cho nút "Nhập script thuyết trình"
   const enterEditMode = (uploadedSlides: SlideMetadata[]) => {
     if (metadata) {
       enterEditModeWithMetadata(uploadedSlides, metadata);
