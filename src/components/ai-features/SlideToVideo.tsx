@@ -255,12 +255,13 @@ const SlideToVideo = () => {
             title: userUploadedPptx.name.replace('.pptx', ''),
             slides: uploadedSlides.map((slide: SlideMetadata, idx: number) => {
               const slideText = textResult.slides_text?.find((s: any) => s.slide_number === idx);
+              const finalContent = slideText?.rewritten_content || slideText?.content || '';
 
               return {
                 slide_number: idx,
                 title: slide.title || `Slide ${idx + 1}`,
                 content: [],
-                original_content: slideText?.content || ''
+                original_content: finalContent
               };
             })
           }

@@ -8,7 +8,7 @@ export interface MediaVideo {
   user_id: number;
   name: string;
   video_url: string;
-  video_type: string; // ⭐ Thêm dòng này nếu chưa có
+  video_type: string; //   Thêm dòng này nếu chưa có
   created_at: string;
   updated_at?: string;
 }
@@ -21,13 +21,13 @@ export interface MediaVideoListResponse {
 export interface MediaVideoCreate {
   name: string;
   video_url: string;
-  video_type: string; // ⭐ Thêm dòng này nếu chưa có
+  video_type: string; //   Thêm dòng này nếu chưa có
 }
 
 export interface MediaVideoUpdate {
   name?: string;
   video_url?: string;
-  video_type?: string; // ⭐ Thêm dòng này nếu chưa có
+  video_type?: string; //   Thêm dòng này nếu chưa có
 }
 
 export interface UploadVideoResponse {

@@ -55,7 +55,7 @@
             padding: 3rem 2rem;
             text-align: center;
             transition: all 0.3s;
-            cursor: pointer; // ⭐ Di chuyển cursor lên đây
+            cursor: pointer; //   Di chuyển cursor lên đây
 
             .dark & {
                 background: #1e293b;
@@ -76,7 +76,7 @@
                 }
             }
 
-            // ⭐ Sửa lại input file - chỉ cover vùng dropzone
+            //   Sửa lại input file - chỉ cover vùng dropzone
             input[type="file"] {
                 position: absolute;
                 top: 0;
@@ -87,7 +87,7 @@
                 height: 100%;
                 opacity: 0;
                 cursor: pointer;
-                z-index: 5; // ⭐ Giảm z-index xuống
+                z-index: 5; //   Giảm z-index xuống
             }
 
             .upload-content {
@@ -96,7 +96,7 @@
                 align-items: center;
                 gap: 1.5rem;
                 position: relative;
-                pointer-events: none; // ⭐ Disable pointer events cho content
+                pointer-events: none; //   Disable pointer events cho content
 
                 .upload-icon-wrapper {
                     position: relative;
@@ -187,7 +187,7 @@
 
                 .upload-button {
                     position: relative;
-                    z-index: 1; // ⭐ Giảm z-index xuống
+                    z-index: 1; //   Giảm z-index xuống
                     pointer-events: none;
                     padding: 0.75rem 1.5rem;
                     background: #8b5cf6;
@@ -199,7 +199,7 @@
                     display: flex;
                     align-items: center;
                     gap: 0.5rem;
-                    border: none; // ⭐ Thêm border none
+                    border: none; //   Thêm border none
 
                     &:hover {
                         background: #7c3aed;
@@ -260,8 +260,8 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            position: relative; // ⭐ Thêm
-            z-index: 10; // ⭐ Thêm
+            position: relative; //   Thêm
+            z-index: 10; //   Thêm
 
             .dark & {
                 background: rgba(16, 185, 129, 0.2);
@@ -269,7 +269,7 @@
             }
         }
 
-        // ⭐ Thêm style cho upload-action-btn
+        //   Thêm style cho upload-action-btn
         .upload-action-btn {
             margin: 1rem auto 0 auto;
             padding: 0.875rem 1.5rem;

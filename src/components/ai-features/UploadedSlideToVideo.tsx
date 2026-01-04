@@ -187,7 +187,7 @@ const UploadedSlideToVideo = () => {
 
         setField('metadata', defaultMetadata);
 
-        // ⭐ Truyền metadata vào function thay vì đọc từ state
+        //   Truyền metadata vào function thay vì đọc từ state
         enterEditModeWithMetadata(uploadedSlides, defaultMetadata);
 
         setField('error', null);
@@ -202,7 +202,7 @@ const UploadedSlideToVideo = () => {
     }
   };
 
-  // ⭐ Function mới nhận metadata làm parameter
+  //   Function mới nhận metadata làm parameter
   const enterEditModeWithMetadata = (uploadedSlides: SlideMetadata[], metadataToUse: PresentationMetadata) => {
     const editData: SlideData[] = uploadedSlides.map((slide, idx) => {
       const slideData = metadataToUse.slide_data.slides[idx];
