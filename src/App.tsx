@@ -24,9 +24,9 @@ import CreateContent from './pages/user/CreateContent';
 import MyVideos from './pages/user/MyVideos';
 import MyLibrary from './pages/user/MyLibrary';
 import MyDeepfakeVideos from './pages/user/MyDeepfakeVideos';
+import UserGuide from './pages/user/UserGuide';
 
 // Admin Pages
-import AdminDashboard from './pages/admin/Dashboard';
 import AdminUserManagement from './pages/admin/UserManagement';
 import AdminProfile from './pages/admin/Profile';
 import AllVideos from './pages/admin/AllVideos';
@@ -108,15 +108,15 @@ function App() {
           </UserLayout>
         </ProtectedRoute>
       } />
-
-      {/* Admin Routes */}
-      <Route path="/admin/dashboard" element={
-        <ProtectedRoute requireAdmin>
-          <AdminLayout>
-            <AdminDashboard />
-          </AdminLayout>
+      <Route path="/user-guide" element={
+        <ProtectedRoute>
+          <UserLayout>
+            <UserGuide />
+          </UserLayout>
         </ProtectedRoute>
       } />
+
+      {/* Admin Routes */}
       <Route path="/admin/users" element={
         <ProtectedRoute requireAdmin>
           <AdminLayout>

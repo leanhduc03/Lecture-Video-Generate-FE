@@ -286,23 +286,13 @@ const MyVideos = () => {
     <main className="my-videos-container">
       <div className="page-header">
         <div className="header-content">
-          <h1 className="page-title">Video của tôi</h1>
+          <h1 className="page-title">Video thuyết minh đã tạo</h1>
           <p className="video-count">
             <span className="material-icons-round">analytics</span>
             Tổng số: <span className="count-number">{videos.length} video</span>
           </p>
         </div>
         <div className="header-actions">
-          {/* <div className="search-wrapper">
-            <span className="material-icons-round search-icon">search</span>
-            <input 
-              className="search-input"
-              placeholder="Tìm kiếm video..."
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div> */}
           <div className="filter-wrapper">
             <button className="filter-button" onClick={toggleFilter}>
               <span className="material-icons-round">filter_list</span>
@@ -320,22 +310,6 @@ const MyVideos = () => {
                 </div>
                 
                 <div className="filter-content">
-                  {/* <div className="selected-dates">
-                    <div className="date-badge">
-                      <span className="date-label">Từ:</span>
-                      <span className="date-value">
-                        {startDate ? new Date(startDate).toLocaleDateString('vi-VN') : 'Chưa chọn'}
-                      </span>
-                    </div>
-                    <span className="date-arrow">→</span>
-                    <div className="date-badge">
-                      <span className="date-label">Đến:</span>
-                      <span className="date-value">
-                        {endDate ? new Date(endDate).toLocaleDateString('vi-VN') : 'Chưa chọn'}
-                      </span>
-                    </div>
-                  </div> */}
-
                   <div className="calendar-wrapper">
                     <div className="calendar-header">
                       <button className="calendar-nav" onClick={prevMonth}>

@@ -502,7 +502,7 @@ const DeepfakeVideo = () => {
               disabled={isLoading || !selectedImageUrl || !selectedVideoUrl}
             >
               <span className="material-symbols-outlined">auto_fix_high</span>
-              {isLoading ? 'Đang xử lý...' : 'Tạo Video Deepfake'}
+              {isLoading ? 'Đang xử lý...' : 'Tạo video ghép mặt'}
             </button>
             <p className="processing-note">Dự kiến mất khoảng 2-5 phút cho mỗi phút video</p>
           </div>
@@ -525,7 +525,7 @@ const DeepfakeVideo = () => {
         <div className="result-section">
           <div className="result-header">
             <span className="material-symbols-outlined">check_circle</span>
-            <h3>Video Deepfake hoàn chỉnh</h3>
+            <h3>Video ghép mặt hoàn chỉnh</h3>
           </div>
 
           {isSavingVideo && (
@@ -560,7 +560,7 @@ const DeepfakeVideo = () => {
               className="new-deepfake-btn"
             >
               <span className="material-symbols-outlined">add</span>
-              Tạo Deepfake mới
+              Tạo video ghép mặt mới
             </button>
           </div>
         </div>

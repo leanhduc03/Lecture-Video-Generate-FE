@@ -279,7 +279,7 @@ const MyDeepfakeVideos = () => {
     <main className="my-videos-container">
       <div className="page-header">
         <div className="header-content">
-          <h1 className="page-title">Video Deepfake của tôi</h1>
+          <h1 className="page-title">Video ghép mặt đã tạo</h1>
           <p className="video-count">
             <span className="material-icons-round">analytics</span>
             Tổng số: <span className="count-number">{videos.length} video</span>
