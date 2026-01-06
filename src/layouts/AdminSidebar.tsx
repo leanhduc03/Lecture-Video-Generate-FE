@@ -13,7 +13,7 @@ const AdminSidebar: FC = () => {
     if (location.pathname.startsWith("/admin/users")) return "users";
     if (location.pathname.startsWith("/admin/videos")) return "videos";
     if (location.pathname.startsWith("/admin/media-videos")) return "media-videos";
-    return "dashboard";
+    return "users";
   })();
 
   return (
@@ -49,7 +49,7 @@ const AdminSidebar: FC = () => {
         className="border-0 bg-transparent"
         items={[
           { key: "users", icon: <TeamOutlined />, label: "Quản lý người dùng" },
-          { key: "videos", icon: <VideoCameraOutlined />, label: "Quản lý video" },
+          { key: "videos", icon: <VideoCameraOutlined />, label: "Quản lý video thuyết minh" },
           { key: "media-videos", icon: <PlayCircleOutlined />, label: "Quản lý video giảng viên" },
         ]}
         />

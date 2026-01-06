@@ -537,7 +537,7 @@ const SlideToVideo = () => {
         const slide = contentSlides[i];
         const slideData = slideDataList.find(sd => sd.slide_number === slide.slide_number);
 
-        setField('processingMessage', `Đang xử lý slide ${i + 1}/${contentSlides.length}...`);
+        setField('processingMessage', `Đang xử lý slide ${i + 1}...`);
 
         const narrationText = slideData?.original_content || '';
 
@@ -730,7 +730,7 @@ const SlideToVideo = () => {
                 )}
 
                 <div className="script-editor">
-                  <label>Script thuyết trình cho slide này:</label>
+                  <label>Nội dung thuyết trình cho slide này:</label>
                   <textarea
                     value={slideData.original_content}
                     onChange={(e) => updateOriginalContent(index, e.target.value)}
@@ -924,7 +924,7 @@ const SlideToVideo = () => {
               </div>
               <div className="space-y-3">
                 <div className="text-sm font-medium text-gray-900">
-                  Hoặc upload PPTX đã chỉnh sửa:
+                  Hoặc tải lên PPTX đã chỉnh sửa:
                 </div>
                 <div className="flex items-center gap-3">
                   <label
@@ -1048,20 +1048,20 @@ const SlideToVideo = () => {
                             onClick={() => navigate('/create-content', { state: { activeTab: 'deepfake' } })}
                             className="create-deepfake-btn"
                           >
-                            <span>Tạo video deepfake mới</span>
+                            <span>Tạo video ghép mặt mới</span>
                           </button>
                         )}
 
                         {/* Hiện notice khi chưa có video */}
                         {videoSourceType === 'deepfake' && deepfakeVideos.length === 0 && (
                           <div className="no-video-notice">
-                            <p>💡 Bạn chưa có video deepfake nào. Tạo video ghép mặt mới ngay!</p>
+                            <p> Bạn chưa có video ghép mặt nào. Tạo video ghép mặt mới ngay!</p>
                             <button
                               onClick={() => navigate('/create-content', { state: { activeTab: 'deepfake' } })}
                               className="create-deepfake-btn"
                             >
                               <span className="material-symbols-outlined">face_retouching_natural</span>
-                              <span>Tạo video deepfake ngay</span>
+                              <span>Tạo video ghép mặt ngay</span>
                             </button>
                           </div>
                         )}
@@ -1080,7 +1080,7 @@ const SlideToVideo = () => {
                         onChange={() => handleVideoSourceTypeChange('custom')}
                       />
                       <div className="option-content">
-                        <label htmlFor="video-custom">Upload video tùy chỉnh</label>
+                        <label htmlFor="video-custom">Tải lên video tùy chỉnh</label>
                         <div className="file-input-wrapper">
                           <label className="file-button" htmlFor="custom-video-input">
                             Chọn tệp
@@ -1240,7 +1240,7 @@ const SlideToVideo = () => {
                       onClick={() => setField('audioMode', 'upload')}
                     >
                       <span className="material-symbols-outlined">upload_file</span>
-                      Upload Audio Mới
+                      Tải lên Audio Mới
                     </button>
                     <button
                       className={audioMode === 'existing' ? 'active' : ''}
@@ -1257,7 +1257,7 @@ const SlideToVideo = () => {
                       <div className="reference-text-input">
                         <label htmlFor="reference-text">
                           <span className="material-symbols-outlined">text_fields</span>
-                          Reference Text (nội dung của audio mẫu):
+                          Nội dung của audio mẫu:
                           <span className="required">*</span>
                         </label>
                         <textarea
@@ -1272,7 +1272,7 @@ const SlideToVideo = () => {
                         </div>
                         <div className="info-text">
                           <span className="material-symbols-outlined">info</span>
-                          Lưu ý: Reference text phải khớp với nội dung trong audio để có kết quả tốt nhất
+                          Lưu ý: Đoạn văn trên phải khớp với nội dung trong audio để có kết quả tốt nhất
                         </div>
                       </div>
 
@@ -1294,7 +1294,7 @@ const SlideToVideo = () => {
                         {isUploadingAudio && (
                           <div className="upload-progress">
                             <span className="material-symbols-outlined spinning">progress_activity</span>
-                            Đang upload và xử lý audio...
+                            Đang tải lên và xử lý audio...
                           </div>
                         )}
                       </div>
@@ -1304,7 +1304,7 @@ const SlideToVideo = () => {
                           <span className="material-symbols-outlined">check_circle</span>
                           <div className="success-details">
                             <strong>Audio đã sẵn sàng!</strong>
-                            <p>Reference Text: "{referenceText}"</p>
+                            <p>Nội dung audio: "{referenceText}"</p>
                             <audio src={referenceAudioUrl} controls />
                           </div>
                         </div>
@@ -1324,7 +1324,7 @@ const SlideToVideo = () => {
                             className="switch-mode-btn"
                           >
                             <span className="material-symbols-outlined">upload</span>
-                            Upload audio đầu tiên
+                            Tải lên audio đầu tiên
                           </button>
                         </div>
                       ) : (
@@ -1391,7 +1391,7 @@ const SlideToVideo = () => {
                       </div>
                       <div className="summary-content">
                         <p className="reference-text-summary">
-                          <span className="label">Reference Text:</span>
+                          <span className="label">Nội dung audio:</span>
                           "{referenceText}"
                         </p>
                         <button

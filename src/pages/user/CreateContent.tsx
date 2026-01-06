@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import DeepfakeVideo from '../../components/ai-features/DeepfakeVideo';
 import SlideToVideo from '../../components/ai-features/SlideToVideo';
 import UploadedSlideToVideo from '../../components/ai-features/UploadedSlideToVideo';
+import { MdArrowForward } from 'react-icons/md';
 import '../../styles/create-content.scss';
 
 const CreateContent = () => {
@@ -34,7 +35,7 @@ const CreateContent = () => {
             onClick={() => setActiveTab('slide')}
           >
             <span className="material-symbols-outlined icon">slideshow</span>
-            Text to Video
+            Văn bản <MdArrowForward /> Video
           </button>
 
           <button
@@ -42,7 +43,7 @@ const CreateContent = () => {
             onClick={() => setActiveTab('uploadedslide')}
           >
             <span className="material-symbols-outlined icon">upload_file</span>
-            Slide to Video
+            Slide <MdArrowForward /> Video
           </button>
 
           <button
@@ -50,7 +51,7 @@ const CreateContent = () => {
             onClick={() => setActiveTab('deepfake')}
           >
             <span className="material-symbols-outlined icon">video_camera_front</span>
-            Deepfake Video
+            Video ghép mặt
           </button>
         </div>
 

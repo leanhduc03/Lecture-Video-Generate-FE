@@ -382,7 +382,7 @@ const UploadedSlideToVideo = () => {
       if (result.success && result.audio_url) {
         return result.audio_url;
       } else {
-        throw new Error('Không thể upload reference audio');
+        throw new Error('Không thể tải lên audio');
       }
     }
 
@@ -465,7 +465,7 @@ const UploadedSlideToVideo = () => {
         const slide = slides[i];
         const slideData = slideDataList.find(sd => sd.slide_number === slide.slide_number);
 
-        setField("processingMessage", `Đang xử lý slide ${i + 1}/${slides.length}...`);
+        setField("processingMessage", `Đang xử lý slide ${i + 1}...`);
 
         const narrationText = slideData?.original_content || '';
 
@@ -664,7 +664,7 @@ const UploadedSlideToVideo = () => {
                 )}
 
                 <div className="script-editor">
-                  <label>Script thuyết trình cho slide này:</label>
+                  <label>Nội dung thuyết trình cho slide này:</label>
                   <textarea
                     value={slideData.original_content}
                     onChange={(e) => updateOriginalContent(index, e.target.value)}
@@ -811,7 +811,7 @@ const UploadedSlideToVideo = () => {
               disabled={isUploadingPptx}
               className="upload-action-btn"
             >
-              {isUploadingPptx ? 'Đang xử lý...' : 'Upload và Tiếp tục'}
+              {isUploadingPptx ? 'Đang xử lý...' : 'Tải lên và tiếp tục'}
             </button>
           )}
         </div>
@@ -832,7 +832,7 @@ const UploadedSlideToVideo = () => {
             </div>
             <button onClick={() => enterEditMode(slides)} className="edit-script-btn">
               <span className="material-symbols-outlined">edit</span>
-              Nhập script thuyết trình
+              Nhập nội dung thuyết trình
             </button>
           </div>
 
@@ -893,7 +893,7 @@ const UploadedSlideToVideo = () => {
                         onChange={() => handleVideoSourceTypeChange('deepfake')}
                       />
                       <div className="option-content">
-                        <label htmlFor="video-deepfake">Sử dụng video deepfake đã tạo</label>
+                        <label htmlFor="video-deepfake">Sử dụng video ghép mặt đã tạo</label>
                         <select
                           value={selectedVideoUrl}
                           onChange={(e) => setField('selectedVideoUrl', e.target.value)}
@@ -902,7 +902,7 @@ const UploadedSlideToVideo = () => {
                           {loadingDeepfakeVideos ? (
                             <option>Đang tải...</option>
                           ) : deepfakeVideos.length === 0 ? (
-                            <option>Chưa có video deepfake</option>
+                            <option>Chưa có video ghép mặt</option>
                           ) : (
                             deepfakeVideos.map(option => (
                               <option key={option.id} value={option.video_url}>
@@ -918,20 +918,20 @@ const UploadedSlideToVideo = () => {
                             onClick={() => navigate('/create-content', { state: { activeTab: 'deepfake' } })}
                             className="create-deepfake-btn"
                           >
-                            <span>Tạo video deepfake mới</span>
+                            <span>Tạo video ghép mặt mới</span>
                           </button>
                         )}
 
                         {/* Hiện notice khi chưa có video */}
                         {videoSourceType === 'deepfake' && deepfakeVideos.length === 0 && (
                           <div className="no-video-notice">
-                            <p> Bạn chưa có video deepfake nào. Tạo video ghép mặt mới ngay!</p>
+                            <p> Bạn chưa có video ghép mặt nào. Tạo video ghép mặt mới ngay!</p>
                             <button
                               onClick={() => navigate('/create-content', { state: { activeTab: 'deepfake' } })}
                               className="create-deepfake-btn"
                             >
                               <span className="material-symbols-outlined">face_retouching_natural</span>
-                              <span>Tạo video deepfake ngay</span>
+                              <span>Tạo video ghép mặt ngay</span>
                             </button>
                           </div>
                         )}
@@ -1110,7 +1110,7 @@ const UploadedSlideToVideo = () => {
                       onClick={() => setField('audioMode', 'upload')}
                     >
                       <span className="material-symbols-outlined">upload_file</span>
-                      Upload Audio Mới
+                      Tải lên audio mới
                     </button>
                     <button
                       className={audioMode === 'existing' ? 'active' : ''}
@@ -1127,7 +1127,7 @@ const UploadedSlideToVideo = () => {
                       <div className="reference-text-input">
                         <label htmlFor="reference-text">
                           <span className="material-symbols-outlined">text_fields</span>
-                          Reference Text (nội dung của audio mẫu):
+                          Nội dung của audio mẫu:
                           <span className="required">*</span>
                         </label>
                         <textarea
@@ -1142,7 +1142,7 @@ const UploadedSlideToVideo = () => {
                         </div>
                         <div className="info-text">
                           <span className="material-symbols-outlined">info</span>
-                          Lưu ý: Reference text phải khớp với nội dung trong audio để có kết quả tốt nhất
+                          Lưu ý: Đoạn văn trên phải khớp với nội dung trong audio để có kết quả tốt nhất
                         </div>
                       </div>
 
@@ -1164,7 +1164,7 @@ const UploadedSlideToVideo = () => {
                         {isUploadingAudio && (
                           <div className="upload-progress">
                             <span className="material-symbols-outlined spinning">progress_activity</span>
-                            Đang upload và xử lý audio...
+                            Đang tải lên và xử lý audio...
                           </div>
                         )}
                       </div>
@@ -1174,7 +1174,7 @@ const UploadedSlideToVideo = () => {
                           <span className="material-symbols-outlined">check_circle</span>
                           <div className="success-details">
                             <strong>Audio đã sẵn sàng!</strong>
-                            <p>Reference Text: "{referenceText}"</p>
+                            <p>Nội dung audio: "{referenceText}"</p>
                             <audio src={referenceAudioUrl} controls />
                           </div>
                         </div>
@@ -1194,7 +1194,7 @@ const UploadedSlideToVideo = () => {
                             className="switch-mode-btn"
                           >
                             <span className="material-symbols-outlined">upload</span>
-                            Upload audio đầu tiên
+                            Tải lên audio đầu tiên
                           </button>
                         </div>
                       ) : (
@@ -1261,7 +1261,7 @@ const UploadedSlideToVideo = () => {
                       </div>
                       <div className="summary-content">
                         <p className="reference-text-summary">
-                          <span className="label">Reference Text:</span>
+                          <span className="label">Nội dung audio:</span>
                           "{referenceText}"
                         </p>
                         <button

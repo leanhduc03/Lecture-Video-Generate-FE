@@ -21,6 +21,10 @@ const Dashboard = () => {
     navigate('/my-library');
   };
 
+  const handleViewGuide = () => {
+    navigate('/user-guide');
+  };
+
   const handleChooseSlideToVideo = () => {
     setShowModal(false);
     navigate('/create-content', { state: { activeTab: 'slide' } });
@@ -52,10 +56,6 @@ const Dashboard = () => {
         <div className="absolute inset-0 bg-purple-500/20 blur-3xl rounded-[2rem] -z-10 opacity-60"></div>
         <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-100 flex flex-col md:flex-row h-[320px]">
           <div className="p-7 md:p-10 md:w-1/2 flex flex-col justify-center relative z-10 order-2 md:order-1">
-            {/* <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50 text-purple-700 text-[11px] font-bold w-fit mb-4 border border-purple-100 tracking-wide uppercase">
-              <MdMovieCreation className="text-base" />
-              <span>AI Powered</span>
-            </div> */}
             <h2 className="text-[26px] font-bold text-slate-900 mb-3 leading-tight">
               Biến bài giảng thành video chuyên nghiệp
             </h2>
@@ -70,10 +70,6 @@ const Dashboard = () => {
                 <MdAddCircle className="text-lg" />
                 <span>Tạo Video Mới</span>
               </button>
-              {/* <button className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold py-3 px-6 rounded-xl transition-colors text-[15px]">
-                <MdPlayCircle className="text-lg" />
-                <span>Xem Demo</span>
-              </button> */}
             </div>
           </div>
           <div className="md:w-1/2 bg-slate-50 relative overflow-hidden flex items-center justify-center order-1 md:order-2">
@@ -168,7 +164,10 @@ const Dashboard = () => {
             <p className="text-slate-600 text-[13px] mb-5 flex-grow leading-relaxed">
               Tài liệu chi tiết và video hướng dẫn giúp bạn làm chủ công cụ nhanh chóng.
             </p>
-            <button className="w-full py-2.5 px-4 bg-slate-50 hover:bg-teal-600 hover:text-white text-slate-600 rounded-lg font-medium text-[13px] transition-all flex items-center justify-center gap-2 group/btn">
+            <button 
+              onClick={handleViewGuide}
+              className="w-full py-2.5 px-4 bg-slate-50 hover:bg-teal-600 hover:text-white text-slate-600 rounded-lg font-medium text-[13px] transition-all flex items-center justify-center gap-2 group/btn"
+            >
               <span>Xem tài liệu</span>
               <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
             </button>
