@@ -496,6 +496,7 @@ const SlideToVideo = () => {
   };
 
   const processAllSlidesAndCreateVideo = async () => {
+    setField('finalVideoUrl', null);
     if (!metadata || slides.length === 0) {
       setField('error', 'Chưa có slide để xử lý');
       return;
@@ -1435,7 +1436,7 @@ const SlideToVideo = () => {
       )}
 
       {/* Final result */}
-      {finalVideoUrl && (
+      {finalVideoUrl && !isProcessing && (
         <div className="result-section">
           <h3>
             <span className="material-symbols-outlined">check_circle</span>

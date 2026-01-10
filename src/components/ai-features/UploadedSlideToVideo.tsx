@@ -425,6 +425,7 @@ const UploadedSlideToVideo = () => {
   };
 
   const processAllSlidesAndCreateVideo = async () => {
+    setField('finalVideoUrl', null);
     if (!metadata || slides.length === 0) {
       setField('error', "Chưa có silde để xử lý.");
       return;
@@ -912,7 +913,7 @@ const UploadedSlideToVideo = () => {
                           )}
                         </select>
 
-                        {/* Chỉ hiện nút "Tạo video deepfake mới" khi đã có video */}
+                        {/* Chỉ hiện nút "Tạo video mới" khi đã có video */}
                         {videoSourceType === 'deepfake' && deepfakeVideos.length > 0 && (
                           <button
                             onClick={() => navigate('/create-content', { state: { activeTab: 'deepfake' } })}
@@ -1308,7 +1309,7 @@ const UploadedSlideToVideo = () => {
       )}
 
       {/* Final Result */}
-      {finalVideoUrl && (
+      {finalVideoUrl && !isProcessing && (
         <div className="result-section">
           <h3>
             <span className="material-symbols-outlined">check_circle</span>
