@@ -504,6 +504,22 @@ const DeepfakeVideo = () => {
               <span className="material-symbols-outlined">auto_fix_high</span>
               {isLoading ? 'Đang xử lý...' : 'Tạo video ghép mặt'}
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                patch({
+                  selectedImageUrl: null,
+                  selectedVideoUrl: null,
+                  sourceFile: null,
+                  targetFile: null,
+                  error: null
+                });
+              }}
+              className="reset-btn"
+            >
+              <span className="material-symbols-outlined">refresh</span>
+              Reset
+            </button>
             <p className="processing-note">Dự kiến mất khoảng 2-5 phút cho mỗi phút video</p>
           </div>
         </div>
